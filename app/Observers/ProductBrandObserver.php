@@ -14,16 +14,29 @@ class ProductBrandObserver
 
     public function created(ProductBrand $productBrand): void
     {
-        if(is_null($productBrand->wms_id)) {
+        if (is_null($productBrand->wms_id)) {
             $response = WMSBrand::createBrand([
                 'brand_name' => $productBrand->name
             ]);
 
-            if(!collect($response)->has('error')) {
+            if (!collect($response)->has('error')) {
                 $productBrand->updateQuietly([
                     'wms_id' => $response['id']
                 ]);
             }
         }
+
+        // log manual, karena create tidak bisa terdeteksi
+        activity()
+            ->useLog('Merek')
+            ->performedOn($productBrand)
+            ->withProperties([
+                'attributes' => [
+                    'wms_id' => $response['id'],
+                    'name' => $productBrand->name,
+                    'slug' => $productBrand->slug
+                ]
+            ])
+            ->log('Merek has been created & updated with WMS ID');
     }
 }

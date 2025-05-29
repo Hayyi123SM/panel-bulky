@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Warehouse extends Model
 {
-    use HasUuids, SoftDeletes, Notifiable;
+    use HasUuids, SoftDeletes, Notifiable, LogsActivity;
 
     protected $fillable = [
         'name',
@@ -49,5 +51,23 @@ class Warehouse extends Model
         return Attribute::make(
             get: fn() => $this->subDistrict->district_id,
         );
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('Gudang')
+            ->logOnly([
+                'name',
+                'address',
+                'email',
+                'sub_district_id',
+                'latitude',
+                'longitude',
+                'contact_info',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Gudang has been {$eventName}");
     }
 }

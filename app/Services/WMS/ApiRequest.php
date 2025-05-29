@@ -29,12 +29,12 @@ class ApiRequest
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
-            if ($response['data']['status']){
+            if ($response['data']['status']) {
                 return $response['data']['resource'];
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException|\Exception $e) {
+        } catch (RequestException | \Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
@@ -51,13 +51,12 @@ class ApiRequest
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
-            if ($response['data']['status']){
+            if ($response['data']['status']) {
                 return $response['data']['resource'];
             } else {
                 throw new \Exception($response['data']['message']);
             }
-
-        } catch (RequestException|\Exception $e) {
+        } catch (RequestException | \Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
@@ -74,12 +73,12 @@ class ApiRequest
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
-            if ($response['data']['status']){
+            if ($response['data']['status']) {
                 return $response['data']['resource'];
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException|\Exception $e) {
+        } catch (RequestException | \Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
@@ -95,12 +94,12 @@ class ApiRequest
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
-            if ($response['data']['status']){
+            if ($response['data']['status']) {
                 return $response['data']['resource'];
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException|\Exception $e) {
+        } catch (RequestException | \Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];

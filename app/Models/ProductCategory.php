@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Translatable\HasTranslations;
 
 #[ObservedBy(ProductCategoryObserver::class)]
 class ProductCategory extends Model
 {
-    use SoftDeletes, HasUuids, HasSlug, HasTranslations;
+    use SoftDeletes, HasUuids, HasSlug, HasTranslations, LogsActivity;
 
     public array $translatable = ['name_trans'];
 
@@ -35,5 +37,21 @@ class ProductCategory extends Model
     public function coupons(): BelongsToMany
     {
         return $this->belongsToMany(Coupon::class, 'coupon_category', 'product_category_id', 'coupon_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('Kategori Produk')
+            ->logOnly([
+                'wms_id',
+                'name',
+                'name_trans',
+                'slug',
+                'icon'
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Kategori Produk has been {$eventName}");
     }
 }

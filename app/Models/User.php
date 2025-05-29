@@ -20,11 +20,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[ObservedBy(UserObserver::class)]
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
-    use HasFactory, Notifiable, HasUuids, SoftDeletes, HasUsername, HasApiTokens;
+    use HasFactory, Notifiable, HasUuids, SoftDeletes, HasUsername, HasApiTokens, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -68,7 +70,9 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     protected $appends = [
-        'province_id', 'city_id', 'district_id'
+        'province_id',
+        'city_id',
+        'district_id'
     ];
 
     public function fullAddress(): Attribute
@@ -148,5 +152,24 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_admin;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('Menejement User')
+            ->logOnly([
+                'sub_district_id',
+                'address',
+                'name',
+                'email',
+                'username',
+                'profile_picture',
+                'phone_number',
+                'is_admin',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Menejement User has been {$eventName}");
     }
 }
