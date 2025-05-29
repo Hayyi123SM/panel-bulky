@@ -20,6 +20,7 @@
         "midtrans/midtrans-php": "^2.5",
         "mokhosh/filament-rating": "^1.4",
         "rawilk/filament-password-input": "^2.0",
+        "spatie/laravel-activitylog": "^4.10",
         "xendit/xendit-php": "6.0.0"
     },
     "require-dev": {

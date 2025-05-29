@@ -11,12 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Translatable\HasTranslations;
 
 #[ObservedBy(ProductObserver::class)]
 class Product extends Model
 {
-    use SoftDeletes, HasUuids, HasSlug, Hastranslations;
+    use SoftDeletes, HasUuids, HasSlug, HasTranslations, LogsActivity;
 
     public array $translatable = ['name_trans', 'description_trans'];
 
@@ -91,5 +93,29 @@ class Product extends Model
             'name_trans' => 'json',
             'description_trans' => 'json',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('Produk')
+            ->logOnly([
+                'wms_id',
+                'images',
+                'name',
+                'name_trans',
+                'slug',
+                'price',
+                'price_before_discount',
+                'total_quantity',
+                'pdf_file',
+                'description',
+                'description_trans',
+                'is_active',
+                'sold_out',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Produk has been {$eventName}");
     }
 }

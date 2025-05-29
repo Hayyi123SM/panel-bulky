@@ -50,7 +50,7 @@ class SyncDataAction extends Action
                     $lastPage = $wmsProducts['last_page'];
 
                     $created = $this->handleResponseData($wmsProducts['data'], $data);
-                    if(!$created) {
+                    if (!$created) {
                         $hasError = true;
                         $this->failureNotificationTitle('Terjadi Kesalahan saat mensinkronkan ke WMS.');
                         $this->failure();
@@ -65,7 +65,7 @@ class SyncDataAction extends Action
                 }
             } while ($currentPage < $lastPage);
 
-            if(!$hasError) {
+            if (!$hasError) {
                 $this->successNotificationTitle('Data berhasil disinkronkan ke WMS');
                 $this->success();
             }
@@ -116,7 +116,7 @@ class SyncDataAction extends Action
                 $brandIds = [];
                 foreach ($wmsProduct['palet_brands'] as $palletBrand) {
                     $brand = ProductBrand::find($palletBrand['id']);
-                    if($brand) {
+                    if ($brand) {
                         $brandIds[] = $brand->id;
                     }
                 }

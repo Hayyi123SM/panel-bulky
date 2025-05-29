@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Coupon extends Model
 {
-    use SoftDeletes, HasUuids;
+    use SoftDeletes, HasUuids, LogsActivity;
 
     protected $fillable = [
         'code',
@@ -65,5 +67,22 @@ class Coupon extends Model
         } while (self::where('code', $code)->exists());
 
         return $code;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('Kupon')
+            ->logOnly([
+                'code',
+                'discount_type',
+                'discount_value',
+                'expiry_date',
+                'minimum_purchase',
+                'usage_limit',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Kupon has been {$eventName}");
     }
 }
