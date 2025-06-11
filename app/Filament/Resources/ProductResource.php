@@ -136,33 +136,33 @@ class ProductResource extends Resource
                             ->native(false)
                             ->preload()
                             ->searchable(),
-//                        Forms\Components\Select::make('vehicle_type_id')
-//                            ->label('Jenis Kendaraan')
-//                            ->options(function (){
-//                                $vehicles = Deliveree::getVehicleTypes();
-//                                if (collect($vehicles)->has('error')) {
-//                                    Notification::make('error_deliveree')
-//                                        ->title($vehicles['error'])
-//                                        ->danger()
-//                                        ->send();
-//
-//                                    return [];
-//                                } else {
-//                                    return collect($vehicles['data'])
-//                                        ->when(app()->environment('production'), function ($collection) {
-//                                            return $collection->filter(function ($item) {
-//                                                return str_contains($item['name'], 'Liquid8');
-//                                            });
-//                                        })
-//                                        ->mapWithKeys(function ($item) {
-//                                            return [
-//                                                $item['id'] => "<span>{$item['name']}</span><br>{$item['cargo_length']} x {$item['cargo_height']} x {$item['cargo_width']}"
-//                                            ];
-//                                        });
-//                                }
-//                            })
-//                            ->allowHtml()
-//                            ->native(false)
+                        //                        Forms\Components\Select::make('vehicle_type_id')
+                        //                            ->label('Jenis Kendaraan')
+                        //                            ->options(function (){
+                        //                                $vehicles = Deliveree::getVehicleTypes();
+                        //                                if (collect($vehicles)->has('error')) {
+                        //                                    Notification::make('error_deliveree')
+                        //                                        ->title($vehicles['error'])
+                        //                                        ->danger()
+                        //                                        ->send();
+                        //
+                        //                                    return [];
+                        //                                } else {
+                        //                                    return collect($vehicles['data'])
+                        //                                        ->when(app()->environment('production'), function ($collection) {
+                        //                                            return $collection->filter(function ($item) {
+                        //                                                return str_contains($item['name'], 'Liquid8');
+                        //                                            });
+                        //                                        })
+                        //                                        ->mapWithKeys(function ($item) {
+                        //                                            return [
+                        //                                                $item['id'] => "<span>{$item['name']}</span><br>{$item['cargo_length']} x {$item['cargo_height']} x {$item['cargo_width']}"
+                        //                                            ];
+                        //                                        });
+                        //                                }
+                        //                            })
+                        //                            ->allowHtml()
+                        //                            ->native(false)
                     ]),
             ])->inlineLabel()->columns(1);
     }
@@ -181,7 +181,7 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga Produk')
                     ->prefix('Rp ')
-                    ->numeric(0,',','.')
+                    ->numeric(0, ',', '.')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('id_pallet')
                     ->label('ID Pallet')
