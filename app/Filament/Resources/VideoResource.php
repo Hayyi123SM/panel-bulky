@@ -51,6 +51,7 @@ class VideoResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->reorderable('order_column')
             ->columns([
                 Tables\Columns\ImageColumn::make('thumbnail')
                     ->width(60)
@@ -117,6 +118,7 @@ class VideoResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->orderBy('order_column')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

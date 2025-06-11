@@ -6,6 +6,6 @@ class WMSCategory
 {
     public static function getCategories(array $query = [])
     {
-        return ApiRequest::sendGetRequest('/api/list-categories', $query);
+        return ApiRequest::sendGetRequest('/api/list-categories2', $query);
     }
 }

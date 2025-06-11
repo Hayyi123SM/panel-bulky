@@ -105,7 +105,7 @@ class InvoiceController extends Controller
         $totalInvoice = $invoice->order->invoices->sum('amount');
         $remaining = $invoice->order->total_price - $totalInvoice;
 
-        if($request->integer('amount') > $remaining) {
+        if ($request->integer('amount') > $remaining) {
             throw ValidationException::withMessages([
                 'amount' => ['Jumlah yang dimasukkan melebihi jumlah yang tersisa. Sisa jumlah: Rp ' . number_format($remaining, 0, ',', '.')]
             ]);
@@ -130,11 +130,11 @@ class InvoiceController extends Controller
 
         $apiInstance = new InvoiceApi();
 
-        $redirectUrl = 'https://bulky.id/redirect/?type=order&order_id=' . $invoice->order_id . '&payment_success=true';
+        $redirectUrl = 'https://bulky.wms-liquid8.online/redirect/?type=order&order_id=' . $invoice->order_id . '&payment_success=true';
         $orderId = $invoice->order_id;
-        if($invoice->order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($invoice->order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             $orderId = $invoice->id;
-            $redirectUrl = 'https://bulky.id/redirect/?type=order-split&order_id=' . $invoice->order_id . '&payment_success=true';
+            $redirectUrl = 'https://bulky.wms-liquid8.online/redirect/?type=order-split&order_id=' . $invoice->order_id . '&payment_success=true';
         }
 
         $name = $invoice->order->items()->first()->product->name;
@@ -144,7 +144,7 @@ class InvoiceController extends Controller
             'description' => $name,
             'amount' => $invoice->amount,
             'invoice_duration' => 800,
-//            'invoice_duration' => $invoice->order->payment_method == OrderPaymentTypeEnum::SinglePayment ? 900 : 3600,
+            //            'invoice_duration' => $invoice->order->payment_method == OrderPaymentTypeEnum::SinglePayment ? 900 : 3600,
             'success_redirect_url' => $redirectUrl,
             'payment_methods' => [$paymentMethod->code],
         ]);
@@ -157,7 +157,6 @@ class InvoiceController extends Controller
             $invoice->save();
 
             return new InvoiceResource($invoice);
-
         } catch (XenditSdkException $exception) {
             throw new Exception($exception->getMessage());
         }

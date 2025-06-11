@@ -84,7 +84,7 @@ class SyncDataAction extends Action
                 $images[] = $imagePath;
             }
 
-            $category = ProductCategory::whereWmsId($wmsProduct['category_id'])->first();
+            $category = ProductCategory::whereWmsId($wmsProduct['category_palet_id'])->first();
             $condition = ProductCondition::whereWmsId($wmsProduct['product_condition_id'])->first();
             $status = ProductStatus::whereWmsId($wmsProduct['product_status_id'])->first();
 
