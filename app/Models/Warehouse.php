@@ -35,21 +35,21 @@ class Warehouse extends Model
     public function provinceId(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->subDistrict->district->city->province_id,
+            get: fn() => $this->subDistrict->district->city->province_id ?? null,
         );
     }
 
     public function cityId(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->subDistrict->district->city_id,
+            get: fn() => $this->subDistrict->district->city_id ?? null,
         );
     }
 
     public function districtId(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->subDistrict->district_id,
+            get: fn() => $this->subDistrict->district_id ?? null,
         );
     }
 
