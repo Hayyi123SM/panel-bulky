@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\ProductStatusObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -9,6 +11,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Translatable\HasTranslations;
 
+#[ObservedBy(ProductStatusObserver::class)]
 class ProductStatus extends Model
 {
     use SoftDeletes, HasUuids, HasTranslations, LogsActivity;
