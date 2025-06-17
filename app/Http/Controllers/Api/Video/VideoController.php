@@ -27,9 +27,10 @@ class VideoController extends Controller
      */
     public function index(GetVideoRequest $request)
     {
+        $query = Video::orderBy('order_column', 'asc');
         $videos = $request->paginate
-            ? Video::paginate($request->per_page ?? 15)
-            : Video::take($request->take ?? 15)->get();
+            ? $query->paginate($request->per_page ?? 15)
+            : $query->take($request->take ?? 15)->get();
 
         return VideoResource::collection($videos);
     }
@@ -80,5 +81,4 @@ class VideoController extends Controller
 
         return new VideoResource($nextVideo);
     }
-
 }
