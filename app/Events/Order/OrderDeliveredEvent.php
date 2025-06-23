@@ -4,10 +4,11 @@ namespace App\Events\Order;
 
 use App\Models\Order;
 use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 class OrderDeliveredEvent
 {
-    use Dispatchable;
+    use Dispatchable, SerializesModels;
 
     public Order $order;
 

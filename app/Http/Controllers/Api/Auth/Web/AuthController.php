@@ -131,7 +131,7 @@ class AuthController extends Controller
 
         $isNewUser = $user->wasRecentlyCreated;
 
-        if($isNewUser){
+        if ($isNewUser) {
             $user->markEmailAsVerified();
         }
 

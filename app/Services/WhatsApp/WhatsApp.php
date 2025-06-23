@@ -13,12 +13,12 @@ class WhatsApp
     private static function init(): void
     {
         $apiKey = config('services.whatsapp.api_key');
-        $baseUri = 'https://wa5408.cloudwa.my.id';
+        $baseUri = 'https://api.starsender.online';
 
         self::$client = new Client([
             'base_uri' => $baseUri,
             'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => $apiKey,
             ]
         ]);
     }
@@ -27,31 +27,25 @@ class WhatsApp
     {
         self::init();
 
-        if(is_array($phoneNumber)){
+        if (is_array($phoneNumber)) {
             $message = [];
-            foreach ($phoneNumber as $phone){
+            foreach ($phoneNumber as $phone) {
                 $message[] = [
-                    'recipient_type' => 'individual',
+                    'messageType' => 'text',
                     'to' => str($phone)->remove('+')->toString(),
-                    'type' => 'text',
-                    'text' => [
-                        'body' => $message
-                    ]
+                    'body' => $message
                 ];
             }
         } else {
             $message = [
-                'recipient_type' => 'individual',
+                'messageType' => 'text',
                 'to' => str($phoneNumber)->remove('+')->toString(),
-                'type' => 'text',
-                'text' => [
-                    'body' => $message
-                ]
+                'body' => $message
             ];
         }
 
         try {
-            $response = self::$client->request('POST', '/api/v1/messages', [
+            $response = self::$client->request('POST', '/api/send', [
                 'json' => $message
             ]);
             return json_decode($response->getBody(), true);
