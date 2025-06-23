@@ -3,15 +3,13 @@
 namespace App\Events\Order;
 
 use App\Models\Order;
+use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class OrderCreatedEvent
 {
-    use SerializesModels;
+    use Dispatchable, SerializesModels;
 
-    /**
-     * @var Order
-     */
     public Order $order;
 
     public function __construct($order)

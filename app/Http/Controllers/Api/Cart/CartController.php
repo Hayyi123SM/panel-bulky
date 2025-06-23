@@ -128,7 +128,7 @@ class CartController extends Controller
             }
         });
 
-        if($request->filled('mode') && $request->input('mode') == 'checkout'){
+        if ($request->filled('mode') && $request->input('mode') == 'checkout') {
             $cart->update([
                 'coupon_code' => null,
                 'discount_amount' => 0,
@@ -266,21 +266,21 @@ class CartController extends Controller
         $user = $request->user();
         $cart = Cart::whereUserId($user->id)->withCount('items')->firstOrFail();
 
-        if(!is_null($cart->address_id)){
-//            $vehicleTypeIds = $cart->items->pluck('product.vehicle_type_id')->unique();
+        if (!is_null($cart->address_id)) {
+            //            $vehicleTypeIds = $cart->items->pluck('product.vehicle_type_id')->unique();
             $warehouseIds = $cart->items->pluck('product.warehouse_id')->unique();
 
-            if($warehouseIds->count() > 0){
+            if ($warehouseIds->count() > 0) {
                 $warehouseId = $warehouseIds->first();
                 $warehouse = Warehouse::find($warehouseId);
 
-//                $vehicles = Deliveree::getVehicleTypes();
-//                $vehicles = $vehicles['data'];
+                //                $vehicles = Deliveree::getVehicleTypes();
+                //                $vehicles = $vehicles['data'];
 
-//                $filteredVehicles = collect($vehicles)->whereIn('id', $vehicleTypeIds);
-//                $selectedVehicle = $filteredVehicles->sortByDesc(function ($vehicle) {
-//                    return $vehicle['cargo_cubic_meter'];
-//                })->first();
+                //                $filteredVehicles = collect($vehicles)->whereIn('id', $vehicleTypeIds);
+                //                $selectedVehicle = $filteredVehicles->sortByDesc(function ($vehicle) {
+                //                    return $vehicle['cargo_cubic_meter'];
+                //                })->first();
 
                 $selectedItemCount = $cart->items()->where('is_selected', true)->count();
 
@@ -309,7 +309,7 @@ class CartController extends Controller
 
                 $costs = Deliveree::getDeliveryQuote($data);
 
-                if(isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
 
                     $cart->shipping_cost = $cost['total_fees'];
@@ -357,9 +357,9 @@ class CartController extends Controller
                     return response()->json([
                         'message' => 'Alamat pengiriman tidak terjangkau.',
                         'shipping_cost' => false,
+                        'costs' => $costs
                     ], 422);
                 }
-
             }
         }
 
@@ -400,7 +400,7 @@ class CartController extends Controller
         $user = $request->user();
         $cart = Cart::whereUserId($user->id)->withCount('items')->firstOrFail();
 
-        if($cart->address_id == null && $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP){
+        if ($cart->address_id == null && $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
             throw ValidationException::withMessages([
                 'address' => 'Anda belum mengatur alamat pengiriman.'
             ]);
@@ -410,7 +410,7 @@ class CartController extends Controller
             $tax = app(PpnSettings::class);
             $expired = now()->addMinutes(15);
 
-            if($request->input('payment_type') == OrderPaymentTypeEnum::SplitPayment->value) {
+            if ($request->input('payment_type') == OrderPaymentTypeEnum::SplitPayment->value) {
                 $expired = now()->addHour();
             }
 
@@ -421,7 +421,7 @@ class CartController extends Controller
             $shipping_cost = $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $cart->shipping_cost : 0;
             $total = $cart->total_price + $shipping_cost - ($cart->discount_amount ?? 0);
 
-            if($tax->enabled){
+            if ($tax->enabled) {
                 $total += $cart->tax_amount;
             }
 
@@ -460,7 +460,7 @@ class CartController extends Controller
                 'order_id' => $order->id,
             ]);
 
-            if($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP){
+            if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
                 $order->shipping()->create([
                     'shipping_cost' => $cart->shipping_cost,
                     'vehicle_type' => $cart->vehicle_type_id,
@@ -476,7 +476,6 @@ class CartController extends Controller
         event(new OrderCreatedEvent($order));
 
         return new OrderResource($order);
-
     }
 
     /**
@@ -505,11 +504,11 @@ class CartController extends Controller
         $user = $request->user();
         $cart = Cart::whereUserId($user->id)->with('items')->firstOrFail();
 
-        if($request->filled('coupon_code')) {
+        if ($request->filled('coupon_code')) {
 
             $coupon = Coupon::whereCode($request->input('coupon_code'))->with(['users', 'products'])->withCount('usages')->first();
 
-            if($coupon){
+            if ($coupon) {
 
                 if ($coupon->expiry_date && now()->greaterThan($coupon->expiry_date)) {
                     throw ValidationException::withMessages([
@@ -523,7 +522,7 @@ class CartController extends Controller
                     ]);
                 }
 
-                if(!empty($coupon->usage_limit) && $coupon->usages_count >= $coupon->usage_limit){
+                if (!empty($coupon->usage_limit) && $coupon->usages_count >= $coupon->usage_limit) {
                     throw ValidationException::withMessages([
                         'coupon_code' => 'Kupon telah mencapai batas penggunaan.'
                     ]);
@@ -556,16 +555,14 @@ class CartController extends Controller
                 $totalDiscount = 0;
 
                 $items->each(function ($item) use ($cart, $coupon, &$totalDiscount) {
-                    if($coupon->discount_type == CouponDiscountTypeEnum::Amount){
+                    if ($coupon->discount_type == CouponDiscountTypeEnum::Amount) {
                         $discountAmount = (float)$coupon->discount_value;
                         $item->update(['discount_amount' =>  $discountAmount]);
                         $totalDiscount += $discountAmount;
-
                     } elseif ($coupon->discount_type == CouponDiscountTypeEnum::Percent) {
                         $discountAmount = (($item->price * $coupon->discount_value) / 100);
                         $item->update(['discount_amount' =>  $discountAmount]);
                         $totalDiscount += $discountAmount;
-
                     }
                 });
 
@@ -736,8 +733,8 @@ class CartController extends Controller
      */
     private function setProductToSold(Product $product)
     {
-//        if(config('app.env') === 'production') {
-//        }
+        //        if(config('app.env') === 'production') {
+        //        }
         $product->sold_out = true;
         $product->save();
     }

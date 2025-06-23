@@ -31,8 +31,8 @@ class BackOfficePanelProvider extends PanelProvider
             ->login()
             ->authGuard('admin')
             ->colors([
-//                'primary' => '#FFCF02',
-//                'secondary' => '#007185',
+                //                'primary' => '#FFCF02',
+                //                'secondary' => '#007185',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

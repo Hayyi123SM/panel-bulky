@@ -44,10 +44,10 @@ class OrderEventListener
             ? 'https://bulky.id/redirect?type=order-split&order_id=' . $order->id
             : 'https://bulky.id/redirect?type=order&order_id=' . $order->id;
         $total = number_format($order->total_price, 0, ',', '.');
-        $message = "Halo {$order->user->name}, pesanan Anda sudah masuk.\n\nNomor pesanan: $order->order_number\nTotal: Rp $total \n\nSilahkan segenya menyeselesaikan pembayaran.\nKlik di sini untuk bayar: $url";
+        $message = "Halo {$order->user->name}, pesanan Anda sudah masuk.\n\nNomor pesanan: $order->order_number\nTotal: Rp $total \n\nSilahkan segera menyeselesaikan pembayaran.\nKlik di sini untuk bayar: $url";
         WhatsApp::sendMessage($order->user->phone_number, $message);
 
-        if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             foreach ($order->invoices as $invoice) {
                 $invoice->user->notify(new JoinPaymentNotification($order));
             }
@@ -58,13 +58,13 @@ class OrderEventListener
     {
         $order = $event->order;
 
-        $total = 'Rp '. number_format($order->total_price, 0, ',', '.');
-        $tax = 'Rp '. number_format($order->tax_amount, 0, ',', '.');
+        $total = 'Rp ' . number_format($order->total_price, 0, ',', '.');
+        $tax = 'Rp ' . number_format($order->tax_amount, 0, ',', '.');
         $shippingAddress = $order->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $order->shipping_address : '-';
         $shippingCost = 'Rp ' . number_format($order->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $order->shipping->shipping_cost : 0, 0, ',', '.');
         $discount = 'Rp ' . number_format($order->discount_amount, 0, ',', '.');
 
-        if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             $message = <<<EOT
                     Pembayaran Anda telah kami terima.
 
@@ -153,11 +153,11 @@ class OrderEventListener
         $sellerMessage .= "Order Date : " . $order->created_at->format('d-m-Y H:i');
         $sellerMessage .= "\n\nMohon segera siapkan produknya sesuai pesanan Customer.";
 
-        SendWhatsappToSeller::dispatch('6281286636402', $sellerMessage);
-        SendWhatsappToSeller::dispatch('62811950022', $sellerMessage);
-        SendWhatsappToSeller::dispatch('6281284614756', $sellerMessage);
-        SendWhatsappToSeller::dispatch('6285280106488', $sellerMessage);
-        SendWhatsappToSeller::dispatch('628119112722', $sellerMessage);
+        // SendWhatsappToSeller::dispatch('62811950022', $sellerMessage);
+        // SendWhatsappToSeller::dispatch('628119112722', $sellerMessage);
+        // SendWhatsappToSeller::dispatch('6281286636402', $sellerMessage);
+        // SendWhatsappToSeller::dispatch('6285280106488', $sellerMessage);
+        // SendWhatsappToSeller::dispatch('6289603097173', $sellerMessage);
 
         $admins = Admin::all();
         $admins->each(function (Admin $admin) use ($order) {
@@ -176,14 +176,13 @@ class OrderEventListener
     {
         $order = $event->order;
 
-        if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             foreach ($order->invoices() as $invoice) {
                 $invoice->user->notify(new OrderConfirmedNotification($order));
             }
         } else {
             $order->user->notify(new OrderConfirmedNotification($order));
         }
-
     }
 
     public function rejected(OrderRejectedEvent $event): void
@@ -191,7 +190,7 @@ class OrderEventListener
         $order = $event->order;
         $reason = $event->reason;
 
-        if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             foreach ($order->invoices() as $invoice) {
                 $invoice->user->notify(new OrderRejectedNotification($order, $reason));
             }
@@ -205,8 +204,8 @@ class OrderEventListener
         $order = $event->order;
         $type = $event->type;
 
-        if($type == 'admin'){
-            if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($type == 'admin') {
+            if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
                 foreach ($order->invoices() as $invoice) {
                     $invoice->user->notify(new CancelOrderByAdminNotification($order));
                 }
@@ -229,7 +228,7 @@ class OrderEventListener
                 Silahkan membawa bukti pembelian dengan menunjukan nomor pesanan saat mengambil pesanan Anda.
                 EOT;
 
-        if($order->payment_method == OrderPaymentTypeEnum::SplitPayment){
+        if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             foreach ($order->invoices() as $invoice) {
                 WhatsApp::sendMessage($invoice->user->phone_number, $message);
             }

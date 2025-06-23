@@ -10,7 +10,10 @@ class OrderConfirmedEvent
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public Order $order)
+    public Order $order;
+
+    public function __construct($order)
     {
+        $this->order = $order;
     }
 }

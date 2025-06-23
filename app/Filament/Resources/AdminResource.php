@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AdminResource\Pages;
 use App\Filament\Resources\AdminResource\RelationManagers;
-use App\Models\User as Admin;
+use App\Models\Admin;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -106,7 +106,6 @@ class AdminResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('is_admin', true)
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

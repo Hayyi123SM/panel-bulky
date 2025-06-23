@@ -45,7 +45,7 @@ class ChangePasswordAction extends Action
                 ->inlineLabel(),
         ]);
 
-        $this->action(function (Admin $record, array $data){
+        $this->action(function (Admin $record, array $data) {
             $record->password = $data['password'];
             $record->update();
             $this->success();

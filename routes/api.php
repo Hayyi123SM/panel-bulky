@@ -169,10 +169,10 @@ Route::prefix('coupons')->group(function () {
 });
 
 Route::prefix('webhook')->group(function () {
-//    Route::prefix('midtrans')->group(function () {
-//        Route::post('order', [MidtransController::class, 'order'])->name('webhook.midtrans.order');
-//        Route::post('invoice', [MidtransController::class, 'invoice'])->name('webhook.midtrans.invoice');
-//    });
+    //    Route::prefix('midtrans')->group(function () {
+    //        Route::post('order', [MidtransController::class, 'order'])->name('webhook.midtrans.order');
+    //        Route::post('invoice', [MidtransController::class, 'invoice'])->name('webhook.midtrans.invoice');
+    //    });
 
     Route::prefix('deliveree')->group(function () {
         Route::post('/', [DelivereeController::class, 'index']);
