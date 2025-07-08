@@ -41,7 +41,8 @@ class Product extends Model
         'product_condition_id',
         'product_status_id',
         'sold_out',
-        'vehicle_type_id'
+        'vehicle_type_id',
+        'is_new',
     ];
 
     public function warehouse(): BelongsTo

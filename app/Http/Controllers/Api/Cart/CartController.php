@@ -27,11 +27,12 @@ use App\Models\Warehouse;
 use App\Services\Deliveree\Deliveree;
 use App\Settings\PickupInfoSetting;
 use App\Settings\PpnSettings;
-use DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -469,6 +470,79 @@ class CartController extends Controller
 
             $this->createInvoices($order, $request);
             $this->removeItemAfterOrder($cart);
+
+            return $order;
+        });
+
+        event(new OrderCreatedEvent($order));
+
+        return new OrderResource($order);
+    }
+
+    public function placeOrderInWMS(PlaceOrderRequest $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+            'code_document_sale' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $user = User::where('email', $request->input('email'))->first();
+        if (!$user) {
+            throw ValidationException::withMessages(['email' => 'User not found.']);
+        }
+
+        $product = Product::whereName('Palet ' . $request->input('code_document_sale'))
+            ->whereIsActive(0)
+            ->whereSoldOut(1)
+            ->first();
+
+        if (!$product) {
+            throw ValidationException::withMessages(['code_document_sale' => 'Product not found or not available.']);
+        }
+
+        $order = DB::transaction(function () use ($product, $request, $user) {
+            $tax = app(PpnSettings::class);
+            $expired = now()->addMinutes(15);
+
+            if ($request->input('payment_type') == OrderPaymentTypeEnum::SplitPayment->value) {
+                $expired = now()->addHour();
+            }
+
+            $total = $product->price;
+
+            if ($tax->enabled) {
+                $taxAmount = $tax->tax_rate / 100 * $total;
+                $total += $taxAmount;
+            }
+
+            $order = Order::withCount(['items', 'invoices'])->with(['items', 'invoices'])->create([
+                'user_id' => $user->id,
+                'total_price' => $total,
+                'payment_method' => $request->input('payment_type'),
+                'notes' => $request->input('notes'),
+                'payment_expired_at' => $expired,
+                'shipping_method' => 'self_pickup',
+                'name' => $user->name,
+                'phone_number' => $user->phone_number,
+                'discount_amount' => 0,
+                'tax_rate' => $tax->rate,
+                'tax_amount' => $tax->enabled ? $taxAmount : 0,
+                'is_tax_active' => $tax->enabled,
+            ]);
+
+
+            $order->items()->create([
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'price' => $product->price,
+                'discount_amount' => 0,
+            ]);
+
+            $this->createInvoices($order, $request);
 
             return $order;
         });

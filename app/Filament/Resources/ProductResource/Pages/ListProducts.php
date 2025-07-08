@@ -16,7 +16,7 @@ class ListProducts extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            ProductResource\Actions\SyncDataAction::make(),
+            // ProductResource\Actions\SyncDataAction::make(),
             Actions\LocaleSwitcher::make(),
         ];
     }

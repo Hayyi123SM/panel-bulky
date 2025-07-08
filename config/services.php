@@ -48,6 +48,16 @@ return [
     ],
 
     'whatsapp' => [
-        'api_key' => env('WHATSAPP_API_KEY'),
+        'api_key_account' => env('WHATSAPP_API_KEY_ACCOUNT'),
+        'devices' => [
+            [
+                'id' => env('WHATSAPP_DEVICE_ID_UTAMA'),
+                'api_key' => env('WHATSAPP_API_KEY_UTAMA'),
+            ],
+            [
+                'id' => env('WHATSAPP_DEVICE_ID_BACKUP'),
+                'api_key' => env('WHATSAPP_API_KEY_BACKUP'),
+            ],
+        ],
     ],
 ];

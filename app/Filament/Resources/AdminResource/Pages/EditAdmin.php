@@ -13,7 +13,14 @@ class EditAdmin extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->action(function () {
+                    if (auth()->user()->is_dev) {
+                        $this->record->forceDelete();
+                    } else {
+                        $this->record->delete();
+                    }
+                }),
             Actions\ForceDeleteAction::make(),
             Actions\RestoreAction::make(),
             AdminResource\Action\ChangePasswordAction::make()

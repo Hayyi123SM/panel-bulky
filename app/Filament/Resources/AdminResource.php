@@ -105,9 +105,15 @@ class AdminResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        if (!auth()->user()->is_dev) {
+            $query->orWhere('is_dev', false);
+        }
+
+        return $query;
     }
 }

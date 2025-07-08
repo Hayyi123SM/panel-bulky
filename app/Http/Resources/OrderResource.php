@@ -15,7 +15,7 @@ class OrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         $paidAmount = $this->resource->invoices()->whereStatus(InvoiceStatusEnum::PAID)->sum('amount');
-        $cancelable = now()->diffInMinutes($this->created_at) < 60 && $this->user_id === $request->user()->id;
+        $cancelable = now()->diffInMinutes($this->created_at) < 60 && $this->user_id === $request->user()?->id;
         $total = $this->total_price;
         $totalPrice = $this->total_price - $this->shipping?->shipping_cost;
         $remaining = $total - $paidAmount;
@@ -23,7 +23,7 @@ class OrderResource extends JsonResource
         $statusLabel = $this->order_status->getLabel();
         $statusDescription = $this->order_status->getDescription();
 
-        if($this->order_status == OrderStatusEnum::Shipped && $this->shipping_method == ShippingMethodEnum::SELF_PICKUP){
+        if ($this->order_status == OrderStatusEnum::Shipped && $this->shipping_method == ShippingMethodEnum::SELF_PICKUP) {
             $statusLabel = 'Siap di ambil.';
             $statusDescription = 'Paket sudah siap di ambil.';
         }
@@ -77,7 +77,7 @@ class OrderResource extends JsonResource
             'shipping_address' => $this->shipping_address,
             'expired_at' => [
                 'date' => !is_null($this->payment_expired_at) ? $this->payment_expired_at->toDateTimeString() : null,
-                'human' => !is_null($this->payment_expired_at)? $this->payment_expired_at->diffForHumans() : null,
+                'human' => !is_null($this->payment_expired_at) ? $this->payment_expired_at->diffForHumans() : null,
             ],
             'user' => new UserResource($this->user),
             'items' => OrderItemResource::collection($this->items),

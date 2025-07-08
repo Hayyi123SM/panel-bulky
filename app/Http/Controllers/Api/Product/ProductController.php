@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Product\ProductsRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use LaravelIdea\Helper\App\Models\_IH_Product_QB;
 
 /**
@@ -36,13 +38,13 @@ class ProductController extends Controller
                 $query->whereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(name_trans, '$.id'))) LIKE ?", [$search])
                     ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(name_trans, '$.en'))) LIKE ?", [$search]);
             }))
-            ->when($request->category, fn($q) => $q->whereHas('productCategory', function($q) use ($request) {
+            ->when($request->category, fn($q) => $q->whereHas('productCategory', function ($q) use ($request) {
                 return $q->whereIn('slug', explode(',', $request->category))->withTrashed();
             }))
-            ->when($request->status, function($q) use ($request) {
+            ->when($request->status, function ($q) use ($request) {
                 return $q->whereIn('product_status_id', explode(',', $request->status))->withTrashed();
             })
-            ->when($request->condition, fn($q) => $q->whereHas('productCondition', function($q) use ($request) {
+            ->when($request->condition, fn($q) => $q->whereHas('productCondition', function ($q) use ($request) {
                 return $q->whereIn('slug', explode(',', $request->condition))->withTrashed();
             }))
             ->when($request->brands, fn($q) => $q->whereHas('brands', fn($q) => $q->whereIn('slug', $request->brands)))
@@ -124,5 +126,67 @@ class ProductController extends Controller
             ->inRandomOrder()
             ->limit(5 - $count)
             ->get();
+    }
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'wms_id' => 'nullable|numeric|gt:0',
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'price_before_discount' => 'required|numeric|min:0',
+            'total_quantity' => 'required|integer|min:0',
+            'pdf_file' => 'nullable|url',
+            'description' => 'required|string',
+            'is_active' => 'nullable|boolean',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'product_category_id' => 'nullable|exists:product_categories,id',
+            'brand_ids' => 'nullable|array',
+            'brand_ids.*' => 'exists:product_brands,id',
+            'product_condition_id' => 'nullable|exists:product_conditions,id',
+            'product_status_id' => 'nullable|exists:product_statuses,id',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_sold' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $images = [];
+        $fileImages = $request->file('images');
+
+        if (is_array($fileImages)) {
+            foreach ($fileImages as $image) {
+                $images[] = $image->storeAs('products', $image->hashName(), 'public');
+            }
+        }
+
+        $product = activity()->withoutLogs(function () use ($request, $images) {
+            return Product::create([
+                'images' => $images,
+                'wms_id' => $request->wms_id ?? null,
+                'name_trans' => $request->name,
+                'price' => $request->price,
+                'price_before_discount' => $request->price_before_discount,
+                'total_quantity' => $request->total_quantity,
+                'pdf_file' => $request->pdf_file ?? null,
+                'description_trans' => $request->description,
+                'is_active' => $request->is_active ?? true,
+                'warehouse_id' => $request->warehouse_id ?? null,
+                'product_category_id' => $request->product_category_id,
+                'product_condition_id' => $request->product_condition_id,
+                'product_status_id' => $request->product_status_id,
+                'is_new' => true,
+                'sold_out' => $request->is_sold ?? false,
+            ]);
+        });
+
+        if ($request->brand_ids !== null) {
+            $product->brands()->sync($request->brand_ids);
+        }
+
+        return new ProductResource($product);
     }
 }

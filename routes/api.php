@@ -98,6 +98,7 @@ Route::prefix('banners')->group(function () {
 
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'getProducts']);
+    Route::post('/create', [ProductController::class, 'store'])->middleware('api.key');
     Route::get('/detail/{slug}', [ProductController::class, 'detail']);
     Route::get('/related/{slug}', [ProductController::class, 'relatedProduct']);
 
@@ -181,4 +182,8 @@ Route::prefix('webhook')->group(function () {
     Route::prefix('xendit')->group(function () {
         Route::post('/', [XenditController::class, 'handleInvoice']);
     });
+});
+
+Route::prefix('wms')->middleware('api.key')->group(function () {
+    Route::post('place-order-by-wms', [CartController::class, 'placeOrderInWMS']);
 });
