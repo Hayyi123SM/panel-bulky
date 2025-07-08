@@ -208,6 +208,12 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('productStatus.status')
                     ->label('Status Produk')
                     ->searchable(),
+                Tables\Columns\ToggleColumn::make('is_new')
+                    ->label('Produk Baru')
+                    ->onIcon('heroicon-o-check')
+                    ->onColor('success')
+                    ->alignCenter()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

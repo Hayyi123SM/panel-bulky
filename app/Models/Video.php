@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Observers\VideoObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[ObservedBy(VideoCategory::class)]
+#[ObservedBy(VideoObserver::class)]
 class Video extends Model
 {
     use SoftDeletes, HasUuids, LogsActivity;

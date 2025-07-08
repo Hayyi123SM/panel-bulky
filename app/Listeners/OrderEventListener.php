@@ -153,11 +153,13 @@ class OrderEventListener
         $sellerMessage .= "Order Date : " . $order->created_at->format('d-m-Y H:i');
         $sellerMessage .= "\n\nMohon segera siapkan produknya sesuai pesanan Customer.";
 
-        // SendWhatsappToSeller::dispatch('62811950022', $sellerMessage);
-        // SendWhatsappToSeller::dispatch('628119112722', $sellerMessage);
-        // SendWhatsappToSeller::dispatch('6281286636402', $sellerMessage);
-        // SendWhatsappToSeller::dispatch('6285280106488', $sellerMessage);
-        // SendWhatsappToSeller::dispatch('6289603097173', $sellerMessage);
+        // SendWhatsappToSeller::dispatch([
+        //     '62811950022',
+        //     '628119112722',
+        //     '6281286636402',
+        //     '6285280106488',
+        //     '6289603097173'
+        // ], $sellerMessage);
 
         $admins = Admin::all();
         $admins->each(function (Admin $admin) use ($order) {
