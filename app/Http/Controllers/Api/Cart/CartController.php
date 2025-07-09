@@ -515,7 +515,7 @@ class CartController extends Controller
             $total = $product->price;
 
             if ($tax->enabled) {
-                $taxAmount = $tax->tax_rate / 100 * $total;
+                $taxAmount = $tax->rate / 100 * $total;
                 $total += $taxAmount;
             }
 
