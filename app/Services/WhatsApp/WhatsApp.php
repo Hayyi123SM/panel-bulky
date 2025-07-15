@@ -65,10 +65,10 @@ class WhatsApp
             ->map(fn($s) => "{$s['id']}: {$s['status']}")
             ->join(', ');
 
-        logger()->warning('Semua device WhatsApp tidak terhubung.', [
+        logger()->warning('Semua device WhatsApp untuk notifikasi tidak terhubung.', [
             'status_devices' => $statusMsg
         ]);
-        throw new \RuntimeException("Semua device WhatsApp tidak terhubung. Status devices: {$statusMsg}");
+        throw new \RuntimeException("Semua device WhatsApp untuk notifikasi tidak terhubung. Status devices: {$statusMsg}");
     }
 
     public static function sendMessage(string|array $phoneNumber, string $message): array
