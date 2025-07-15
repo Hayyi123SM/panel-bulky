@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
+            'smart.api.maintenance' => \App\Http\Middleware\SmartApiMaintenance::class,
+        ]);
+
+        $middleware->group('api', [
+            'smart.api.maintenance',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
