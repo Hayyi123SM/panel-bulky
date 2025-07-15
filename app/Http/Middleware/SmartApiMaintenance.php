@@ -17,13 +17,14 @@ class SmartApiMaintenance
     public function handle(Request $request, Closure $next): Response
     {
         $route = $request->route();
-        $routeName = $route?->getName(); // Pastikan semua route punya nama
+        $routeName = $route?->getName();
 
         if (Cache::get('global_api_maintenance', false)) {
-            $whitelist = ['health', 'status']; // route name yang tetap aktif meski global maintenance
+            $whitelist = []; // route name yang tetap aktif meski global maintenance
             if (!in_array($routeName, $whitelist)) {
                 return response()->json([
                     'status' => 'maintenance',
+                    'type' => 'global',
                     'message' => 'API sedang dalam pemeliharaan (global).',
                 ], 503);
             }
@@ -32,6 +33,7 @@ class SmartApiMaintenance
         if ($routeName && Cache::get("route_maintenance:$routeName", false)) {
             return response()->json([
                 'status' => 'maintenance',
+                'type' => 'route',
                 'message' => "Route '{$routeName}' sedang dalam pemeliharaan.",
             ], 503);
         }
