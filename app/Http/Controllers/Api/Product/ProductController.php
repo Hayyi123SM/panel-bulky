@@ -9,6 +9,8 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use LaravelIdea\Helper\App\Models\_IH_Product_QB;
 
@@ -188,5 +190,75 @@ class ProductController extends Controller
         }
 
         return new ProductResource($product);
+    }
+
+    public function storeBatch(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'products' => 'required|array|min:1',
+            'products.*.name' => 'required|string|max:255',
+            'products.*.price' => 'required|numeric|min:0',
+            'products.*.price_before_discount' => 'required|numeric|min:0',
+            'products.*.total_quantity' => 'required|integer|min:0',
+            'products.*.description' => 'required|string',
+            'products.*.images' => 'nullable|array',
+            'products.*.images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'products.*.warehouse_id' => 'nullable|exists:warehouses,id',
+            'products.*.product_category_id' => 'nullable|exists:product_categories,id',
+            'products.*.product_condition_id' => 'nullable|exists:product_conditions,id',
+            'products.*.product_status_id' => 'nullable|exists:product_statuses,id',
+            'products.*.brand_ids' => 'nullable|array',
+            'products.*.brand_ids.*' => 'exists:product_brands,id',
+            'products.*.is_active' => 'nullable|boolean',
+            'products.*.is_new' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            activity()->withoutLogs(function () use ($request) {
+                foreach ($request->products as $index => $item) {
+                    $storedImages = [];
+
+                    if (isset($item['images']) && is_array($item['images'])) {
+                        foreach ($item['images'] as $image) {
+                            $storedImages[] = $image->storeAs('products', $image->hashName(), 'public');
+                        }
+                    }
+
+                    $product = Product::create([
+                        'name_trans' => $item['name'],
+                        'price' => $item['price'],
+                        'price_before_discount' => $item['price_before_discount'],
+                        'total_quantity' => $item['total_quantity'],
+                        'description_trans' => $item['description'],
+                        'images' => $storedImages,
+                        'is_active' => $item['is_active'] ?? true,
+                        'product_category_id' => $item['product_category_id'] ?? null,
+                        'product_condition_id' => $item['product_condition_id'] ?? null,
+                        'product_status_id' => $item['product_status_id'] ?? null,
+                        'is_new' => true,
+                        'sold_out' => $item['is_sold'] ?? false,
+                    ]);
+
+                    if (!empty($item['brand_ids'])) {
+                        $product->brands()->sync($item['brand_ids']);
+                    }
+                }
+            });
+
+            DB::commit();
+            return response()->json(['message' => 'Batch produk berhasil disimpan.'], 201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json([
+                'error' => 'Gagal simpan produk',
+            ], 500);
+        }
     }
 }

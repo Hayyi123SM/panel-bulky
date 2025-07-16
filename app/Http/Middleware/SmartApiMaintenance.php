@@ -34,7 +34,8 @@ class SmartApiMaintenance
             return response()->json([
                 'status' => 'maintenance',
                 'type' => 'route',
-                'message' => "Route '{$routeName}' sedang dalam pemeliharaan.",
+                'route' => $routeName,
+                'message' => "Fitur ini sedang dalam pemeliharaan.",
             ], 503);
         }
 

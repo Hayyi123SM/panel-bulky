@@ -99,6 +99,7 @@ Route::prefix('banners')->group(function () {
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'getProducts'])->name('products.index');
     Route::post('/create', [ProductController::class, 'store'])->name('products.create')->middleware('api.key');
+    Route::post('/create-batch', [ProductController::class, 'storeBatch'])->name('products.create-batch')->middleware('api.key');
     Route::get('/detail/{slug}', [ProductController::class, 'detail'])->name('products.detail');
     Route::get('/related/{slug}', [ProductController::class, 'relatedProduct']);
 
