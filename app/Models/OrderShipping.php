@@ -12,6 +12,8 @@ class OrderShipping extends Model
 
     protected $fillable = [
         'order_id',
+        'shipping_provider',
+        'requirement_provider',
         'shipping_cost',
         'vehicle_type',
         'booking_id',
@@ -19,6 +21,13 @@ class OrderShipping extends Model
         'tracking_url',
         'extra_helper_id'
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'requirement_provider' => 'json',
+        ];
+    }
 
     public function order(): BelongsTo
     {

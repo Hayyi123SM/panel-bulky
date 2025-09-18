@@ -25,6 +25,8 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Deliveree\Deliveree;
+use App\Services\Forwarder\ApiRequest;
+use App\Services\GeoRegion\GeoRegionService;
 use App\Settings\PickupInfoSetting;
 use App\Settings\PpnSettings;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -285,87 +287,186 @@ class CartController extends Controller
 
                 $selectedItemCount = $cart->items()->where('is_selected', true)->count();
 
-                $selectedVehicle = match (true) {
-                    $selectedItemCount >= 5 && $selectedItemCount <= 8 => 2703,
-                    $selectedItemCount >= 9 => 2723,
-                    default => 2701,
-                };
+                // $selectedVehicle = match (true) {
+                //     $selectedItemCount >= 5 && $selectedItemCount <= 8 => 2703,
+                //     $selectedItemCount >= 9 => 2723,
+                //     default => 2701,
+                // };
 
-                $data = [
-                    'time_type' => 'now',
-                    'vehicle_type_id' => $selectedVehicle,
-                    'locations' => [
-                        [
-                            'address' => $warehouse->address,
-                            'latitude' => $warehouse->latitude,
-                            'longitude' => $warehouse->longitude,
-                        ],
-                        [
-                            'address' => $cart->address->address,
-                            'latitude' => $cart->address->latitude,
-                            'longitude' => $cart->address->longitude,
-                        ]
-                    ]
-                ];
+                // for testing purpose (sanbox)
+                $geoService = app(GeoRegionService::class);
+                $shippingProvider = $geoService->determineShippingMethod($cart->address->latitude, $cart->address->longitude);
 
-                $costs = Deliveree::getDeliveryQuote($data);
+                //cek jabodetabek
+                if ($shippingProvider) {
+                    $selectedVehicle = match (true) {
+                        $selectedItemCount >= 5 && $selectedItemCount <= 8 => 14,
+                        $selectedItemCount >= 9 => 75,
+                        default => 76,
+                    };
 
-                if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
-                    $cost = $costs['data'][0];
-
-                    $cart->shipping_cost = $cost['total_fees'];
-                    $cart->vehicle_type_id = $selectedVehicle;
-                    $cart->save();
-
-                    return response()->json([
-                        'data' => [
-                            'total_cost' => [
-                                'value' => $cost['total_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['total_fees'], 0, ',', '.')
+                    $data = [
+                        'time_type' => 'now',
+                        'vehicle_type_id' => $selectedVehicle,
+                        'locations' => [
+                            [
+                                'address' => $warehouse->address,
+                                'latitude' => $warehouse->latitude,
+                                'longitude' => $warehouse->longitude,
                             ],
-                            'total_distance' => $cost['total_distance'],
-                            'distance_fees' => [
-                                'value' => $cost['distance_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
-                            ],
-                            'way_point_fees' => [
-                                'value' => $cost['way_point_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
-                            ],
-                            'cod_pod_fees' => [
-                                'value' => $cost['cod_pod_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
-                            ],
-                            'extra_fees' => [
-                                'value' => $cost['extra_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
-                            ],
-                            'surcharges_fees' => [
-                                'value' => $cost['surcharges_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
-                            ],
-                            'surcharges_adjustments_fees' => [
-                                'value' => $cost['surcharges_adjustments_fees'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
+                            [
+                                'address' => $cart->address->address,
+                                'latitude' => $cart->address->latitude,
+                                'longitude' => $cart->address->longitude,
                             ]
                         ]
-                    ]);
-                } else {
-                    $cart->shipping_cost = 0;
-                    $cart->vehicle_type_id = null;
-                    $cart->save();
+                    ];
+                    $costs = Deliveree::getDeliveryQuote($data);
 
-                    return response()->json([
-                        'message' => 'Alamat pengiriman tidak terjangkau.',
-                        'shipping_cost' => false,
-                        'costs' => $costs
-                    ], 422);
+                    if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                        $cost = $costs['data'][0];
+
+                        $cart->shipping_cost = $cost['total_fees'];
+                        $cart->vehicle_type_id = $selectedVehicle;
+                        $cart->shipping_provider = 'Deliveree';
+                        $cart->save();
+
+                        return response()->json([
+                            'data' => [
+                                'total_cost' => [
+                                    'value' => $cost['total_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['total_fees'], 0, ',', '.')
+                                ],
+                                'total_distance' => $cost['total_distance'],
+                                'distance_fees' => [
+                                    'value' => $cost['distance_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
+                                ],
+                                'way_point_fees' => [
+                                    'value' => $cost['way_point_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
+                                ],
+                                'cod_pod_fees' => [
+                                    'value' => $cost['cod_pod_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
+                                ],
+                                'extra_fees' => [
+                                    'value' => $cost['extra_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
+                                ],
+                                'surcharges_fees' => [
+                                    'value' => $cost['surcharges_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
+                                ],
+                                'surcharges_adjustments_fees' => [
+                                    'value' => $cost['surcharges_adjustments_fees'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
+                                ]
+                            ]
+                        ]);
+                    } else {
+                        $cart->shipping_cost = 0;
+                        $cart->vehicle_type_id = null;
+                        $cart->shipping_provider = null;
+                        $cart->save();
+
+                        return response()->json([
+                            'message' => 'Alamat pengiriman tidak terjangkau.',
+                            'shipping_cost' => false,
+                            'costs' => $costs
+                        ], 422);
+                    }
+                } else {
+                    // jika di luar jabodetabek
+                    $apiForwarder = app(ApiRequest::class);
+                    $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
+                    $city = preg_replace([
+                        '/^(Kota|Kabupaten)\s+/i', // hapus awalan
+                        '/\s+City$/i'              // hapus akhiran
+                    ], '', $location['city']);
+                    $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
+                        'city_name' => $city
+                    ]);
+                    $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
+                        "origin_city" => 208, // POL 13 = jakarta, 208 = Depok
+                        "destination_city" => $destination['data'][0]['item_id'], // POD
+                        "destination_subdistrict" => 0, // Tidak mandatory
+                        "transport_type" => $location['transport_type'] ?? 1, // Mandatory [Sea Freight = 1; Land Transport = 3]
+                        "load_type" => $location['load_type'] ?? 1, // Mandatory [FCL = 1; FTL = 4]
+                        "service_type" => 1 // Mandatory [Reguler = 1]
+                    ]);
+
+                    // For Checking Purpose
+                    // return response()->json([
+                    //     'msg' => $destination
+                    // ]);
+                    // return response()->json([
+                    //     'ceking' => isset($costs['data']) && collect($costs['data'])->count() > 0,
+                    //     'city' => $city,
+                    //     'costs' => $costs
+                    // ], 422);
+
+                    if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                        $cost = $costs['data'][0];
+
+                        $cart->shipping_cost = $cost['tariff_idr'];
+                        $cart->vehicle_type_id = null;
+                        $cart->shipping_provider = 'Forwarder';
+                        $cart->requirement_provider = $cost;
+                        $cart->save();
+
+                        return response()->json([
+                            'data' => [
+                                'total_cost' => [
+                                    'value' => $cost['tariff_idr'],
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
+                                ],
+                                // 'total_distance' => $cost['total_distance'],
+                                // 'distance_fees' => [
+                                //     'value' => $cost['distance_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
+                                // ],
+                                // 'way_point_fees' => [
+                                //     'value' => $cost['way_point_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
+                                // ],
+                                // 'cod_pod_fees' => [
+                                //     'value' => $cost['cod_pod_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
+                                // ],
+                                // 'extra_fees' => [
+                                //     'value' => $cost['extra_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
+                                // ],
+                                // 'surcharges_fees' => [
+                                //     'value' => $cost['surcharges_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
+                                // ],
+                                // 'surcharges_adjustments_fees' => [
+                                //     'value' => $cost['surcharges_adjustments_fees'],
+                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
+                                // ]
+                            ]
+                        ]);
+                    } else {
+                        $cart->shipping_cost = 0;
+                        $cart->vehicle_type_id = null;
+                        $cart->shipping_provider = null;
+                        $cart->save();
+
+                        return response()->json([
+                            'message' => 'Alamat pengiriman tidak terjangkau.',
+                            'shipping_cost' => false,
+                            'costs' => $costs
+                        ], 422);
+                    }
                 }
             }
         }
 
         $cart->shipping_cost = 0;
         $cart->vehicle_type_id = null;
+        $cart->shipping_provider = null;
         $cart->save();
 
         return response()->json([
@@ -463,6 +564,8 @@ class CartController extends Controller
 
             if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
                 $order->shipping()->create([
+                    'shipping_provider' => $cart->shipping_provider,
+                    'requirement_provider' => $cart->requirement_provider,
                     'shipping_cost' => $cart->shipping_cost,
                     'vehicle_type' => $cart->vehicle_type_id,
                 ]);
