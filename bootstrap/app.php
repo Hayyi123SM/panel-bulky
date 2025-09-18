@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'smart.api.maintenance' => \App\Http\Middleware\SmartApiMaintenance::class,
         ]);
 
-        $middleware->group('api', [
+        $middleware->appendToGroup('api', [
             'smart.api.maintenance',
         ]);
     })

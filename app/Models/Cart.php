@@ -23,6 +23,8 @@ class Cart extends Model
         'notes',
         'shipping_method',
         'shipping_cost',
+        'shipping_provider',
+        'requirement_provider',
         'extra_helper_id',
         'payment_method',
         'payment_type',
@@ -35,6 +37,7 @@ class Cart extends Model
         return [
             'payment_type' => OrderPaymentTypeEnum::class,
             'shipping_method' => ShippingMethodEnum::class,
+            'requirement_provider' => 'json',
         ];
     }
 
