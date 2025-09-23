@@ -132,6 +132,7 @@ Route::prefix('orders')->middleware('auth:sanctum')->group(function () {
     Route::get('get-detail/{order}', [OrderController::class, 'getDetailOrder'])->name('orders.detail');
     Route::post('review/{order}', [OrderController::class, 'review'])->name('orders.review');
     Route::put('complete/{order}', [OrderController::class, 'complete'])->name('orders.complete');
+    Route::get('tracking/{order}', [OrderController::class, 'tracking'])->name('orders.tracking');
 
     Route::prefix('invoice')->group(function () {
         Route::get('get-payment-methods', [InvoiceController::class, 'getPaymentMethod'])->name('orders.invoice.payment-method');

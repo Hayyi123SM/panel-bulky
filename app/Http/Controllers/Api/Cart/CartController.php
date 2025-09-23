@@ -419,7 +419,8 @@ class CartController extends Controller
                             'data' => [
                                 'total_cost' => [
                                     'value' => $cost['tariff_idr'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.'),
+                                    'insurance_percentage' => $location['transport_type'] === 3 ? 0.125 : 0.2,
                                 ],
                                 // 'total_distance' => $cost['total_distance'],
                                 // 'distance_fees' => [
@@ -568,6 +569,7 @@ class CartController extends Controller
                     'requirement_provider' => $cart->requirement_provider,
                     'shipping_cost' => $cart->shipping_cost,
                     'vehicle_type' => $cart->vehicle_type_id,
+                    'is_insurance' => $request->input('is_insurance') ?? false,
                 ]);
             }
 
