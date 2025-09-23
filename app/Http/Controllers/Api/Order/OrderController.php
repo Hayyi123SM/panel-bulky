@@ -10,7 +10,9 @@ use App\Http\Requests\Api\Order\GetOrdersRequest;
 use App\Http\Requests\Api\Order\ReviewRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use App\Services\Forwarder\ApiRequest;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use JetBrains\PhpStorm\Pure;
 
@@ -56,7 +58,7 @@ class OrderController extends Controller
     {
         $userId = $request->user()->id;
 
-        if($request->input('type') == 'waiting_payment') {
+        if ($request->input('type') == 'waiting_payment') {
             $orders = Order::whereIn('payment_status', [
                 OrderPaymentStatusEnum::PENDING,
                 OrderPaymentStatusEnum::PARTIALLY_PAID
@@ -74,17 +76,17 @@ class OrderController extends Controller
                     $query->withTrashed();
                 })
                 ->whereHas('items')
-                    ->whereHas('items.product', function ($subQuery) {
-                        $subQuery->whereNotNull('id');
-                    })
+                ->whereHas('items.product', function ($subQuery) {
+                    $subQuery->whereNotNull('id');
+                })
                 ->latest()
                 ->paginate($request->input('per_page'))
                 ->load(['items', 'invoices']);
         } elseif ($request->input('type') == 'orders') {
             $orders = Order::whereNotIn('payment_status', [
-                    OrderPaymentStatusEnum::PENDING,
-                    OrderPaymentStatusEnum::PARTIALLY_PAID
-                ])
+                OrderPaymentStatusEnum::PENDING,
+                OrderPaymentStatusEnum::PARTIALLY_PAID
+            ])
                 ->whereNot('payment_method', OrderPaymentTypeEnum::SplitPayment->value)
                 ->when($request->input('search'), function ($query, $search) {
                     return $query->where('order_number', 'like', "%{$search}%");
@@ -172,7 +174,7 @@ class OrderController extends Controller
     {
         $paths = [];
 
-        if($request->hasFile('images')) {
+        if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
                 $paths[] = $image->store('reviews', 'public');
             }
@@ -192,20 +194,20 @@ class OrderController extends Controller
             ]);
         }
 
-//        foreach ($order->items as $item) {
-//            $review = $item->product->reviews()->create([
-//                'user_id' => $request->user()->id,
-//                'order_id' => $order->id,
-//                'rating' => $request->input('rating'),
-//                'comment' => $request->input('comment')
-//            ]);
-//
-//            foreach ($paths as $path) {
-//                $review->images()->create([
-//                    'path' => $path
-//                ]);
-//            }
-//        }
+        //        foreach ($order->items as $item) {
+        //            $review = $item->product->reviews()->create([
+        //                'user_id' => $request->user()->id,
+        //                'order_id' => $order->id,
+        //                'rating' => $request->input('rating'),
+        //                'comment' => $request->input('comment')
+        //            ]);
+        //
+        //            foreach ($paths as $path) {
+        //                $review->images()->create([
+        //                    'path' => $path
+        //                ]);
+        //            }
+        //        }
         $order->has_reviewed = true;
         $order->save();
         $order->load('items.product.reviews');
@@ -230,5 +232,39 @@ class OrderController extends Controller
             'order_status' => OrderStatusEnum::Completed
         ]);
         return new OrderResource($order);
+    }
+
+    public function tracking(Order $order)
+    {
+        $apiForwarder = app(ApiRequest::class);
+        $booking_no = $order->shipping->booking_id;
+
+        if ($booking_no === null) {
+            return response()->json([
+                'message' => 'Data pelacakan tidak ditemukan.',
+            ], 404);
+        }
+
+        $tracking = $apiForwarder->post('/trackandtrace', 'TRACKANDTRACE', [
+            "ref_cust_id" => "fdx_liquid8",
+            "booking_no" => $booking_no,
+        ]);
+
+        if ($tracking['msg'] !== 'Success' && $tracking['data'] === null) {
+            Log::error('Error tracking order', ['msg' => $tracking['msg'], 'data' => $tracking['data']]);
+            return response()->json([
+                'message' => 'Sistem mengalami kesalahan.',
+            ], 422);
+        }
+
+        if ($tracking['msg'] === 'Success' && $tracking['data'] === null) {
+            return response()->json([
+                'message' => 'Data pelacakan tidak ditemukan.',
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $tracking['data']
+        ]);
     }
 }

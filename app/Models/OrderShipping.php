@@ -15,6 +15,7 @@ class OrderShipping extends Model
         'shipping_provider',
         'requirement_provider',
         'shipping_cost',
+        'is_insurance',
         'vehicle_type',
         'booking_id',
         'booking_status',

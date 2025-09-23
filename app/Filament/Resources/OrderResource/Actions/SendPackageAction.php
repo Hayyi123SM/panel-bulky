@@ -33,40 +33,6 @@ class SendPackageAction extends Action
             return $processing && $byCourier;
         });
 
-        // konfigurasi dinamis sesuai provider
-        $this->form(function (Order $record) {
-            if ($record->shipping->shipping_provider === 'Forwarder') {
-                return [
-                    TextInput::make('length')
-                        ->label('Panjang (cm)')
-                        ->numeric()
-                        ->required(),
-                    TextInput::make('width')
-                        ->label('Lebar (cm)')
-                        ->numeric()
-                        ->required(),
-                    TextInput::make('height')
-                        ->label('Tinggi (cm)')
-                        ->numeric()
-                        ->required(),
-                    TextInput::make('volume')
-                        ->label('Volume (m3)')
-                        ->numeric()
-                        ->required(),
-                    TextInput::make('weight')
-                        ->label('Berat (kg)')
-                        ->numeric()
-                        ->required(),
-                    Checkbox::make('withinsurance')
-                        ->label('Gunakan Asuransi')
-                        ->default(true),
-                ];
-            }
-
-            // kalau Deliveree → tidak perlu form, cukup confirm popup
-            return [];
-        });
-
         $this->requiresConfirmation();
 
         $this->action(function (Order $record) {
@@ -102,13 +68,6 @@ class SendPackageAction extends Action
                     ]);
                     break;
                 case 'Forwarder':
-                    // validasi inputan form wajib
-                    $data = $this->getFormData();
-                    if ($data['length'] === null || $data['width'] === null || $data['height'] === null || $data['volume'] === null || $data['weight'] === null) {
-                        $this->failureNotificationTitle('Semua input wajib diisi!');
-                        $this->failure();
-                        return;
-                    }
 
                     $geoService = app(GeoRegionService::class);
                     $warehouseLocation = $geoService->getLocationFromGoogleMaps($warehouse->latitude, $warehouse->longitude);
@@ -167,7 +126,7 @@ class SendPackageAction extends Action
                             "vouchercode" => "",
                             "currencyid" => "1", // IDR
                             "incoterm" => "",
-                            "withinsurance" => !empty($data['withinsurance']) ? '1' : '0',
+                            "withinsurance" => $record->shipping->is_insurance,
                             "commodityamount" => $record->total_price,
                             "insuranceid" => "1",
                             "premiamount" => $record->total_price * 0.2, // 0.2% adalah insurance transport SEA
@@ -176,11 +135,11 @@ class SendPackageAction extends Action
                                     "qty" => $record->items->sum('quantity'),
                                     "containertypeid" => "15", // 20 DC
                                     "packageid" => "7",
-                                    "length" => $data['length'],
-                                    "width" => $data['width'],
-                                    "height" => $data['height'],
-                                    "volume" => $data['volume'],
-                                    "weight" => $data['weight'],
+                                    "length" => "530",
+                                    "width" => "200",
+                                    "height" => "210",
+                                    "volume" => "22.3",
+                                    "weight" => "6000",
                                     "cargoid" => "78",
                                     "cargodesc" => ""
                                 ]
@@ -209,7 +168,7 @@ class SendPackageAction extends Action
                             "estprice" => "", // Optional
                             "basisprice" => "ECONOMY", // Mandatory
                             "remark" => "Pickup Location", // Optional
-                            "withinsurance" => !empty($data['withinsurance']) ? '1' : '0', // Mandatory
+                            "withinsurance" => $record->shipping->is_insurance, // Mandatory
                             "commodityamount" => $record->total_price, // Mandatory jika withInsurance = 1
                             "insuranceid" => "1", // Mandatory jika withInsurance = 1
                             "premiamount" => $record->total_price * 0.125, // 0.125% adalah insurance transport Land
@@ -241,13 +200,13 @@ class SendPackageAction extends Action
                                     "commodity" => "122", // null
                                     "cargodesc" => "",
                                     "qty" => 1,
-                                    "length" => $data['length'],
-                                    "width" => $data['width'],
-                                    "height" => $data['height'],
-                                    "volume" => $data['volume'],
-                                    "totalvolume" => $data['volume'],
-                                    "weight" => $data['weight'],
-                                    "totalweight" => $data['weight'],
+                                    "length" => "530",
+                                    "width" => "200",
+                                    "height" => "210",
+                                    "volume" => "22.3",
+                                    "totalvolume" => "22.3",
+                                    "weight" => "6000",
+                                    "totalweight" => "6000",
                                 ]
                             ]
                         ]);
