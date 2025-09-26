@@ -264,7 +264,7 @@ class OrderController extends Controller
         }
 
         return response()->json([
-            'data' => $tracking['data']
+            'data' => $tracking['data'][0]
         ]);
     }
 }

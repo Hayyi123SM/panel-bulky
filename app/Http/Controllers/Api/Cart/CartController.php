@@ -419,8 +419,7 @@ class CartController extends Controller
                             'data' => [
                                 'total_cost' => [
                                     'value' => $cost['tariff_idr'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.'),
-                                    'insurance_percentage' => $location['transport_type'] === 3 ? 0.125 : 0.2,
+                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
                                 ],
                                 // 'total_distance' => $cost['total_distance'],
                                 // 'distance_fees' => [
@@ -528,6 +527,12 @@ class CartController extends Controller
                 $total += $cart->tax_amount;
             }
 
+            if ($request->input('is_insurance') === true && $cart->shipping_provider === "Forwarder") {
+                $insurance_percentage = $cart->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? 0.125 : 0.2;
+                $insurance_amount = $insurance_percentage * $cart->total_price;
+                $total += $insurance_amount;
+            }
+
             $order = Order::withCount(['items', 'invoices'])->with(['items', 'invoices'])->create([
                 'user_id' => $user->id,
                 'total_price' => $total,
@@ -570,6 +575,8 @@ class CartController extends Controller
                     'shipping_cost' => $cart->shipping_cost,
                     'vehicle_type' => $cart->vehicle_type_id,
                     'is_insurance' => $request->input('is_insurance') ?? false,
+                    'insurance_amount' => $insurance_amount ?? 0,
+                    'insurance_percentage' => $insurance_percentage ?? 0,
                 ]);
             }
 
