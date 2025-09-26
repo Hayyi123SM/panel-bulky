@@ -16,11 +16,15 @@ class CartResource extends JsonResource
         $tax = app(PpnSettings::class);
         $shipping_cost = $this->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $this->shipping_cost : 0;
 
+        if ($this->shipping_provider === "Forwarder") {
+            $insurance_amount =  $this->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? 0.125 * $this->total_price : 0.2 * $this->total_price;
+        }
+
         $total = $this->total_price + $shipping_cost - ($this->discount_amount ?? 0);
 
         $items = $this->items->load('product');
 
-        if(request()->filled('mode') && \request('mode') == 'checkout'){
+        if (request()->filled('mode') && \request('mode') == 'checkout') {
             $items = $this->items->where('is_selected', true)->load('product');
             if ($tax->enabled) {
                 $total += $this->tax_amount;
@@ -50,12 +54,14 @@ class CartResource extends JsonResource
             'total' => [
                 'numeric' => $total,
                 'formatted' => 'Rp ' . number_format($total, 0, ',', '.'),
+                'with_insurance' => isset($insurance_amount) ? $total + $insurance_amount : $total,
             ],
             'notes' => $this->notes,
             'shipping_method' => $this->shipping_method,
             'shipping_cost' => [
                 'numeric' => $shipping_cost,
                 'formatted' => 'Rp ' . number_format($shipping_cost, 0, ',', '.'),
+                'insurance_amount' => $insurance_amount ?? 0,
             ],
             'payment_method' => $this->payment_method,
             'items_count' => $this->items_count,

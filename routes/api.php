@@ -177,6 +177,7 @@ Route::prefix('webhook')->group(function () {
     //        Route::post('invoice', [MidtransController::class, 'invoice'])->name('webhook.midtrans.invoice');
     //    });
 
+    // webhook deliveree & forwarder gabung
     Route::prefix('deliveree')->group(function () {
         Route::post('/', [DelivereeController::class, 'index']);
     });

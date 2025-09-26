@@ -51,15 +51,15 @@ class DelivereeController extends Controller
      */
     public function index(Request $request)
     {
-//        $key = $request->header('Authorization');
+        //        $key = $request->header('Authorization');
 
-//        if ($key == config('deliveree.webhook_authorization')) {
-//            \Log::alert('Deliveree webhook received: ' . json_encode($request->all()));
-//        } else {
-//            \Log::alert('Deliveree webhook received with invalid key: ' . json_encode($request->all()));
-//        }
+        //        if ($key == config('deliveree.webhook_authorization')) {
+        //            \Log::alert('Deliveree webhook received: ' . json_encode($request->all()));
+        //        } else {
+        //            \Log::alert('Deliveree webhook received with invalid key: ' . json_encode($request->all()));
+        //        }
 
-//        return response()->json(['error' => 'Unauthorized.'], 401);
+        //        return response()->json(['error' => 'Unauthorized.'], 401);
 
         $statuses = [
             'delivery_completed',
@@ -71,23 +71,33 @@ class DelivereeController extends Controller
         ];
 
         $status = $request->input('status');
-        $booking_id = $request->input('id');
-//        $order_number = $request->input('job_order_number');
+        $id = $request->input('id');
+        $no_booking = $request->input('no_booking');
+        $booking_id = $id ?? $no_booking;
+
+        // Validasi: status wajib, dan id/no_booking minimal salah satu wajib
+        if (empty($status) || (empty($id) && empty($no_booking))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The status and either id or no_booking field are required.'
+            ], 422);
+        }
+        //        $order_number = $request->input('job_order_number');
 
         if (in_array($status, $statuses)) {
             $order_shipping = OrderShipping::where('booking_id', $booking_id)->first();
-            if($order_shipping){
+            if ($order_shipping) {
                 $order = $order_shipping->order;
 
                 if ($order) {
                     switch ($status) {
                         case 'delivery_completed':
                             $order->order_status = OrderStatusEnum::Delivered;
-                            OrderDeliveredEvent::dispatch($order);
+                            OrderDeliveredEvent::dispatch($order, $order_shipping->tracking_url);
                             break;
                         case 'delivery_in_progress':
                             $order->order_status = OrderStatusEnum::Shipped;
-                            DeliveryInProgressEvent::dispatch($order);
+                            DeliveryInProgressEvent::dispatch($order, $order_shipping->tracking_url);
                             break;
                         case 'locating_driver_timeout':
                         case 'canceled':
