@@ -529,7 +529,7 @@ class CartController extends Controller
 
             if ($request->input('is_insurance') === true && $cart->shipping_provider === "Forwarder") {
                 $insurance_percentage = $cart->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? 0.125 : 0.2;
-                $insurance_amount = $insurance_percentage * $cart->total_price;
+                $insurance_amount = ($insurance_percentage / 100) * $cart->total_price;
                 $total += $insurance_amount;
             }
 

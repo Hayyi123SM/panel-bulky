@@ -95,14 +95,14 @@ class SendPackageAction extends Action
                             "shipperpostalcode" => $warehouseLocation['post_code'] ?? '',
                             "shipperremark" => "Pickup Location",
                             "consignee" => $record->name,
-                            "consigneeaddress" => $record->shipping_address,
+                            "consigneeaddress" => $consigneeLocation['full_address'] ?? $record->shipping_address,
                             "consigneelat" => $record->latitude,
                             "consigneelng" => $record->longitude,
                             "consigneecountry" => "Indonesia",
                             "consigneeprovince" => $consigneeLocation['province'],
                             "consigneecity" => $consigneeLocation['city'],
                             "consigneepostalcode" => $consigneeLocation['post_code'] ?? '',
-                            "consigneeremark" => "Delivery Location",
+                            "consigneeremark" => $record->shipping_address,
                             "pickup" => "BULKY",
                             "pickupaddress" => $warehouse->address,
                             "pickuplat" => $warehouse->latitude,
@@ -114,7 +114,7 @@ class SendPackageAction extends Action
                             "pickupphone" => $warehouse->contact_info,
                             "pickupremark" => "Pickup Location",
                             "delivery" => $record->name,
-                            "deliveryaddress" => $record->shipping_address,
+                            "deliveryaddress" => $consigneeLocation['full_address'] ?? $record->shipping_address,
                             "deliverylat" => $record->latitude,
                             "deliverylng" => $record->longitude,
                             "deliverycountry" => "Indonesia",
@@ -122,17 +122,17 @@ class SendPackageAction extends Action
                             "deliverycity" => $consigneeLocation['city'],
                             "deliverypostalcode" => $consigneeLocation['post_code'] ?? '',
                             "deliveryphone" => $record->phone_number,
-                            "deliveryremark" => "",
+                            "deliveryremark" => $record->shipping_address,
                             "vouchercode" => "",
                             "currencyid" => "1", // IDR
                             "incoterm" => "",
                             "withinsurance" => $record->shipping->is_insurance,
                             "commodityamount" => $record->total_price,
                             "insuranceid" => "1",
-                            "premiamount" => $record->total_price * 0.2, // 0.2% adalah insurance transport SEA
+                            "premiamount" => $record->total_price * (0.2 / 100), // 0.2% adalah insurance transport SEA
                             "bookingdetail" => [
                                 [
-                                    "qty" => $record->items->sum('quantity'),
+                                    "qty" => "1",
                                     "containertypeid" => "15", // 20 DC
                                     "packageid" => "7",
                                     "length" => "530",
@@ -156,14 +156,14 @@ class SendPackageAction extends Action
                             "priceid" => 1, // Mandatory [Input -> 1]
                             "pickuptimetype" => "SCHEDULE", // Mandatory [Input -> SCHEDULE]
                             "pickuptimeon" => "", // Optional
-                            "vehicleid" => "2", // Mandatory [Ambil dari API Tariff -> Vehicle Type = 2]
+                            "vehicleid" => "7", // Mandatory [Ambil dari API Tariff -> Vehicle Type = 2]
                             "vehicleqty" => 1, // Mandatory
                             "shippername" => "BULKY", // Mandatory [Ambil dari Shipper Name Bulky]
                             "shipperphone" => $warehouse->contact_info, // Mandatory [Ambil dari Shipper Phone Bulky]
                             "shipperaddress" => $warehouse->address, // Mandatory
                             "consigneename" => $record->name, // Mandatory
                             "consigneephone" => $record->phone_number, // Mandatory
-                            "consigneeaddress" => $record->shipping_address, // Mandatory
+                            "consigneeaddress" => $consigneeLocation['full_address'] ?? $record->shipping_address, // Mandatory
                             "estdistance" => "", // Mandatory (estimasi jarak)
                             "estprice" => "", // Optional
                             "basisprice" => "ECONOMY", // Mandatory
@@ -171,7 +171,7 @@ class SendPackageAction extends Action
                             "withinsurance" => $record->shipping->is_insurance, // Mandatory
                             "commodityamount" => $record->total_price, // Mandatory jika withInsurance = 1
                             "insuranceid" => "1", // Mandatory jika withInsurance = 1
-                            "premiamount" => $record->total_price * 0.125, // 0.125% adalah insurance transport Land
+                            "premiamount" => $record->total_price * (0.125 / 100), // 0.125% adalah insurance transport Land
                             "locations" => [
                                 [
                                     "address" => $warehouse->address,
@@ -184,7 +184,7 @@ class SendPackageAction extends Action
                                     "detail" => $warehouse->address,
                                 ],
                                 [
-                                    "address" => $record->shipping_address,
+                                    "address" => $consigneeLocation['full_address'] ?? $record->shipping_address,
                                     "latitude" => $record->latitude,
                                     "longitude" => $record->longitude,
                                     "type" => "DELIVERY",
@@ -197,7 +197,7 @@ class SendPackageAction extends Action
                             "datadetail" => [
                                 [
                                     "packaging" => "7", // Palet
-                                    "commodity" => "122", // null
+                                    "commodity" => "78", // null
                                     "cargodesc" => "",
                                     "qty" => 1,
                                     "length" => "530",

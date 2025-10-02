@@ -236,35 +236,17 @@ class OrderController extends Controller
 
     public function tracking(Order $order)
     {
-        $apiForwarder = app(ApiRequest::class);
-        $booking_no = $order->shipping->booking_id;
+        $trackingService = app(\App\Services\Forwarder\TrackingService::class);
+        $tracking = $trackingService->getTracking($order);
 
-        if ($booking_no === null) {
+        if ($tracking === null) {
             return response()->json([
-                'message' => 'Data pelacakan tidak ditemukan.',
-            ], 404);
-        }
-
-        $tracking = $apiForwarder->post('/trackandtrace', 'TRACKANDTRACE', [
-            "ref_cust_id" => "fdx_liquid8",
-            "booking_no" => $booking_no,
-        ]);
-
-        if ($tracking['msg'] !== 'Success' && $tracking['data'] === null) {
-            Log::error('Error tracking order', ['msg' => $tracking['msg'], 'data' => $tracking['data']]);
-            return response()->json([
-                'message' => 'Sistem mengalami kesalahan.',
-            ], 422);
-        }
-
-        if ($tracking['msg'] === 'Success' && $tracking['data'] === null) {
-            return response()->json([
-                'message' => 'Data pelacakan tidak ditemukan.',
+                'message' => 'Data pelacakan tidak ditemukan atau sistem mengalami kesalahan.',
             ], 404);
         }
 
         return response()->json([
-            'data' => $tracking['data'][0]
+            'data' => $tracking
         ]);
     }
 }

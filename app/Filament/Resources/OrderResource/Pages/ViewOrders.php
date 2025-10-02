@@ -44,7 +44,7 @@ class ViewOrders extends ViewRecord
                             TextEntry::make('user.name')->label('Pengguna'),
                             TextEntry::make('name')
                                 ->label('Pembeli')
-                                ->helperText(fn (Order $record) => $record->phone_number),
+                                ->helperText(fn(Order $record) => $record->phone_number),
                             TextEntry::make('order_number')->label('No. Pesanan'),
                             TextEntry::make('order_date')->label('Tanggal Pesanan')->date('d F Y'),
                             TextEntry::make('order_status')->badge()->label('Status Pesanan'),
@@ -52,12 +52,31 @@ class ViewOrders extends ViewRecord
                         ]),
                     Section::make('Payment & Delivery')
                         ->headerActions([
-                            Action::make('tracking')
+                            \Filament\Infolists\Components\Actions\Action::make('tracking_forwarder')
                                 ->label('Tracking')
-                                ->url(fn (Order $record) => $record->shipping?->tracking_url)
-                                ->visible(fn (Order $record) => $record->shipping?->tracking_url !== null)
-                                ->openUrlInNewTab()
-                                ->icon('heroicon-o-truck'),
+                                ->icon('heroicon-o-truck')
+                                ->color('warning')
+                                ->visible(fn(Order $record) => $record->shipping?->shipping_provider === 'Forwarder' && $record->shipping?->booking_id !== null)
+                                ->modalHeading('Tracking Pengiriman')
+                                ->modalWidth('xl')
+                                ->modalSubmitAction(false)
+                                ->action(function (Order $record) {
+                                    if (!$record->shipping?->booking_id) {
+                                        $this->failureNotificationTitle('Data tracking tidak tersedia');
+                                        $this->failure();
+                                    }
+                                })
+                                ->modalContent(fn(Order $record) => view('filament.components.tracking-modal', [
+                                    'record' => $record,
+                                ]))
+                                ->modalCancelActionLabel('Keluar'),
+                            \Filament\Infolists\Components\Actions\Action::make('tracking_deliveree')
+                                ->label('Tracking')
+                                ->icon('heroicon-o-truck')
+                                ->color('warning')
+                                ->visible(fn(Order $record) => $record->shipping?->shipping_provider === 'Deliveree' && filled($record->shipping?->tracking_url))
+                                ->url(fn(Order $record) => $record->shipping?->tracking_url)
+                                ->openUrlInNewTab(),
                         ])
                         ->columnSpan(1)
                         ->schema([
@@ -80,7 +99,7 @@ class ViewOrders extends ViewRecord
                             TextEntry::make('payment_status')->badge()->label('Status Pembayaran'),
                             TextEntry::make('shipping_address')
                                 ->label('Alamat Pengiriman')
-                                ->url(fn (Order $record) => "https://www.google.com/maps?q=$record->latitude,$record->longitude")
+                                ->url(fn(Order $record) => "https://www.google.com/maps?q=$record->latitude,$record->longitude")
                                 ->openUrlInNewTab()
                                 ->hintIcon('heroicon-o-link'),
                         ])
