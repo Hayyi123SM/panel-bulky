@@ -53,6 +53,7 @@ class GeoRegionService
             'city' => null,
             'province' => null,
             'post_code' => null,
+            'full_address' => null,
             'transport_type' => null,
             'load_type' => null,
         ];
@@ -64,6 +65,9 @@ class GeoRegionService
                 }
             }
         }
+
+        // Ambil alamat lengkap (formatted_address)
+        $result['full_address'] = $data['results'][0]['formatted_address'] ?? null;
 
         $jawaBali = [
             'dki jakarta',
