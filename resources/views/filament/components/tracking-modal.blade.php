@@ -184,6 +184,97 @@
         100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
     }
 </style>
+<style>
+@media (prefers-color-scheme: dark) {
+    .tracking-modal-header {
+        color: #f1f5f9;
+    }
+    .tracking-modal-grid {
+        background: #1e293b;
+        box-shadow: 0 2px 12px 0 rgba(30,41,59,0.18);
+    }
+    .tracking-label {
+        color: #60a5fa;
+    }
+    .tracking-section {
+        /* no change */
+    }
+    .tracking-timeline-label {
+        color: #f1f5f9;
+    }
+    .tracking-timeline-list {
+        /* no change */
+    }
+    .tracking-timeline-item {
+        /* no change */
+    }
+    .tracking-timeline-dot {
+        border-color: #60a5fa;
+        background: #0f172a;
+        box-shadow: 0 2px 8px 0 rgba(96,165,250,0.10);
+    }
+    .tracking-timeline-dot.active {
+        border-color: #22d3ee;
+        background: #22d3ee;
+    }
+    .tracking-timeline-dot-inner {
+        background: #60a5fa;
+    }
+    .tracking-timeline-dot.active .tracking-timeline-dot-inner {
+        background: #0f172a;
+    }
+    .tracking-timeline-dot.upcoming {
+        border-color: #334155;
+        background: #0f172a;
+    }
+    .tracking-timeline-dot.upcoming .tracking-timeline-dot-inner {
+        background: #334155;
+    }
+    .tracking-timeline-line {
+        background: linear-gradient(to bottom, #60a5fa 0%, #22d3ee 100%);
+        box-shadow: 0 0 8px 0 rgba(96,165,250,0.10);
+    }
+    .tracking-timeline-line.completed {
+        background: linear-gradient(to bottom, #60a5fa 0%, #22d3ee 100%);
+    }
+    .tracking-timeline-line.upcoming {
+        background: linear-gradient(to bottom, #334155 0%, #1e293b 100%);
+    }
+    .tracking-timeline-content {
+        /* no change */
+    }
+    .tracking-timeline-status {
+        color: #60a5fa;
+    }
+    .tracking-timeline-status.active {
+        color: #22d3ee;
+    }
+    .tracking-timeline-status.completed {
+        color: #60a5fa;
+        opacity: 0.8;
+    }
+    .tracking-timeline-status.upcoming {
+        color: #334155;
+    }
+    .tracking-timeline-date {
+        color: #cbd5e1;
+    }
+    .tracking-timeline-badge {
+        background: #22d3ee;
+        color: #0f172a;
+        box-shadow: 0 1px 4px 0 rgba(34,211,238,0.08);
+    }
+    .tracking-timeline-badge.completed {
+        background: #60a5fa;
+        color: #0f172a;
+    }
+    .tracking-timeline-badge.upcoming {
+        background: #334155;
+        color: #cbd5e1;
+    }
+    .tracking-not-found { color: #64748b; }
+}
+</style>
 
 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
     <div class="tracking-modal-grid">

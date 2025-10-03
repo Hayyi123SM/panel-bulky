@@ -7,16 +7,44 @@ use Illuminate\Support\Facades\Http;
 class GeoRegionService
 {
     protected array $jabodetabekCities = [
-        'jakarta pusat',
-        'jakarta utara',
-        'jakarta timur',
-        'jakarta barat',
-        'jakarta selatan',
+        // Depok (Jawa Barat)
         'depok',
+        'kota depok',
+        'depok city',
+
+        // Bogor (Kota dan Kabupaten, Jawa Barat)
         'bogor',
+        'kota bogor',
+        'bogor city',
+        'kabupaten bogor',
+        'bogor regency',
+
+        // Bekasi (Kota dan Kabupaten, Jawa Barat)
         'bekasi',
+        'kota bekasi',
+        'bekasi city',
+        'kabupaten bekasi',
+        'bekasi regency',
+
+        // Tangerang (Kota, Kabupaten, dan Tangerang Selatan, Banten)
         'tangerang',
+        'kota tangerang',
+        'tangerang city',
+        'kabupaten tangerang',
+        'tangerang regency',
         'tangerang selatan',
+        'kota tangerang selatan',
+        'south tangerang',
+        'south tangerang city',
+    ];
+
+    protected array $jabodetabekProvinces = [
+        'dki jakarta',
+        'daerah khusus ibukota jakarta',
+        'special capital region of jakarta',
+        'jawa barat',
+        'west java',
+        'banten',
     ];
 
     public function getLocationFromGoogleMaps(float $lat, float $lng): ?array
@@ -69,27 +97,74 @@ class GeoRegionService
         // Ambil alamat lengkap (formatted_address)
         $result['full_address'] = $data['results'][0]['formatted_address'] ?? null;
 
-        $jawaBali = [
-            'dki jakarta',
-            'daerah khusus ibukota jakarta',
-            'special capital region of jakarta',
-            'banten',
-            'jawa barat',
-            'west java',
-            'jawa tengah',
-            'central java',
-            'jawa timur',
-            'east java',
+        $ForwarderFTL = [
+            // Bali
+            'bali',
+
+            // Bangka Belitung
+            'kepulauan bangka belitung',
+            'bangkabelitung islands',
+
+            // Bengkulu
+            'bengkulu',
+
+            // DI Yogyakarta
             'daerah istimewa yogyakarta',
             'special region of yogyakarta',
             'di yogyakarta',
             'yogyakarta',
-            'bali',
+
+            // Gorontalo
+            'gorontalo',
+
+            // Jambi
+            'jambi',
+
+            // Jawa Tengah
+            'jawa tengah',
+            'central java',
+
+            // Jawa Timur
+            'jawa timur',
+            'east java',
+
+            // Kepulauan Riau
+            'kepulauan riau',
+            'riau islands',
+
+            // Lampung
+            'lampung',
+
+            // Maluku Utara
+            'maluku utara',
+            'north maluku',
+
+            // Nanggroe Aceh Darussalam (NAD)
+            'aceh',
+
+            // Nusa Tenggara Barat (NTB)
+            'nusa tenggara barat',
+            'west nusa tenggara',
+
+            // Riau
+            'riau',
+
+            // Sumatera Barat
+            'sumatera barat',
+            'west sumatra',
+
+            // Sumatera Selatan
+            'sumatera selatan',
+            'south sumatra',
+
+            // Sumatera Utara
+            'sumatera utara',
+            'north sumatra',
         ];
 
         $province = strtolower($result['province'] ?? '');
 
-        if (in_array($province, $jawaBali)) {
+        if (in_array($province, $ForwarderFTL)) {
             $result['transport_type'] = 3;
             $result['load_type'] = 4;
         } else {
@@ -101,16 +176,28 @@ class GeoRegionService
         return $result ?: null;
     }
 
-    public function isInJabodetabek(string $city): bool
+    public function isInJabodetabek(string $city, ?string $province): bool
     {
-        return in_array(strtolower($city), $this->jabodetabekCities);
+        $city = strtolower($city);
+        $province = strtolower($province ?? '');
+
+        if (!in_array($province, $this->jabodetabekProvinces)) {
+            return false; // Bukan di provinsi Jabodetabek
+        }
+
+        // Jika provinsi adalah DKI Jakarta, maka otomatis Jabodetabek
+        if (in_array($province, ['dki jakarta', 'daerah khusus ibukota jakarta', 'special capital region of jakarta'])) {
+            return true;
+        }
+
+        return in_array($city, $this->jabodetabekCities);
     }
 
-    public function determineShippingMethod(float $lat, float $lng): bool
+    public function determineShippingMethod(float $lat, float $lng)
     {
         $location = $this->getLocationFromGoogleMaps($lat, $lng);
 
-        if ($location && $this->isInJabodetabek($location['city'])) {
+        if ($location && $this->isInJabodetabek($location['city'], $location['province'])) {
             // return 'kurir_darat';
             return true;
         }

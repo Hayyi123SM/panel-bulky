@@ -167,7 +167,7 @@ class SendPackageAction extends Action
                             "estdistance" => "", // Mandatory (estimasi jarak)
                             "estprice" => "", // Optional
                             "basisprice" => "ECONOMY", // Mandatory
-                            "remark" => "Pickup Location", // Optional
+                            "remark" => $record->shipping_address, // Optional
                             "withinsurance" => $record->shipping->is_insurance, // Mandatory
                             "commodityamount" => $record->total_price, // Mandatory jika withInsurance = 1
                             "insuranceid" => "1", // Mandatory jika withInsurance = 1

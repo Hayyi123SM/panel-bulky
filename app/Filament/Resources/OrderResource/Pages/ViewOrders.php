@@ -77,6 +77,28 @@ class ViewOrders extends ViewRecord
                                 ->visible(fn(Order $record) => $record->shipping?->shipping_provider === 'Deliveree' && filled($record->shipping?->tracking_url))
                                 ->url(fn(Order $record) => $record->shipping?->tracking_url)
                                 ->openUrlInNewTab(),
+                            \Filament\Infolists\Components\Actions\Action::make('lihat_invoice')
+                                ->label('Lihat Invoice')
+                                ->icon('heroicon-o-document-text')
+                                ->color('info')
+                                ->visible(fn(Order $record) => $record->shipping?->shipping_provider === 'Forwarder' && $record->shipping?->booking_id)
+                                ->modalHeading('Invoice Pengiriman')
+                                ->modalWidth('5xl')
+                                ->modalSubmitAction(false)
+                                ->action(function (Order $record, $arguments, $form) {
+                                    // No-op, fetch invoice in modalContent
+                                })
+                                ->modalContent(function (Order $record) {
+                                    $apiForwarder = app(\App\Services\Forwarder\ApiRequest::class);
+                                    $invoice = $apiForwarder->post('/invoicelist', 'INVOICELIST', [
+                                        'booking_no' => $record->shipping->booking_id,
+                                        'invoice_no' => '',
+                                    ]);
+                                    return view('filament.components.invoice-modal', [
+                                        'invoice' => $invoice,
+                                    ]);
+                                })
+                                ->modalCancelActionLabel('Tutup'),
                         ])
                         ->columnSpan(1)
                         ->schema([
