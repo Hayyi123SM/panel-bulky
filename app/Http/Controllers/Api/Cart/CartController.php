@@ -382,7 +382,7 @@ class CartController extends Controller
                     $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
                     $city = preg_replace([
                         '/^(Kota|Kabupaten)\s+/i', // hapus awalan
-                        '/\s+City$/i'              // hapus akhiran
+                        '/\s+(City|Regency)$/i'    // hapus akhiran
                     ], '', $location['city']);
                     $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
                         'city_name' => $city
