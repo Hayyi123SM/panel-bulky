@@ -43,7 +43,7 @@ class ViewProduct extends ViewRecord
                         TextEntry::make('total_quantity'),
                         TextEntry::make('packaging_type')
                             ->label('Tipe Pengemasan')
-                            ->formatStateUsing(fn($state) => $state === 'palet' ? 'Palet' : ($state === 'kontainer' ? 'Kontainer' : '-')),
+                            ->formatStateUsing(fn($state) => $state === 'palet' ? 'Palet' : ($state === 'container' ? 'Kontainer' : '-')),
                     ]),
                 Section::make('Additional Product Details')
                     ->schema([
