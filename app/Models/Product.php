@@ -32,6 +32,7 @@ class Product extends Model
         'price',
         'price_before_discount',
         'total_quantity',
+        'packaging_type',
         'pdf_file',
         'description',
         'description_trans',

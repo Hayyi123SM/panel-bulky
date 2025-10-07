@@ -9,9 +9,8 @@ class SetSelectedItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cart_items' => 'required|array|min:1',
-            'cart_items.*.id' => 'required|uuid|exists:cart_items,id',
-            'cart_items.*.selected' => 'required|boolean',
+            'cart_item_id' => 'required|exists:cart_items,id',
+            'is_selected' => 'required|boolean',
         ];
     }
 

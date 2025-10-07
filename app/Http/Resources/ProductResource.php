@@ -27,6 +27,7 @@ class ProductResource extends JsonResource
                 'formatted' => 'Rp ' . number_format($this->price, 0, ',', '.'),
             ],
             'total_quantity' => $this->total_quantity,
+            'packaging_type' => $this->packaging_type,
             'pdf_file' => \Storage::disk('public')->url($this->pdf_file),
             'description' => $this->description,
             'description_trans' => $this->getTranslations('description_trans'),

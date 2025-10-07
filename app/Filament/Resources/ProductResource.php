@@ -80,6 +80,13 @@ class ProductResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->placeholder('Product Quantity'),
+                        Forms\Components\Radio::make('packaging_type')
+                            ->label('Tipe Pengemasan')
+                            ->options([
+                                'palet' => 'Palet',
+                                'kontainer' => 'Kontainer',
+                            ])
+                            ->required(),
                     ]),
 
                 Forms\Components\Section::make('Informasi Tambahan')
@@ -176,7 +183,9 @@ class ProductResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_trans')
                     ->label('Nama Produk')
-                    ->searchable()
+                    ->searchable(query: function ($query, $search) {
+                        $query->whereRaw('LOWER(name_trans) LIKE ?', ['%' . strtolower($search) . '%']);
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga Produk')
