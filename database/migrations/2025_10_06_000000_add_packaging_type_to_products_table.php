@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('packaging_type', ['palet', 'kontainer'])->default('palet')->after('total_quantity');
+            $table->enum('packaging_type', ['palet', 'container'])->default('palet')->after('total_quantity');
         });
     }
 

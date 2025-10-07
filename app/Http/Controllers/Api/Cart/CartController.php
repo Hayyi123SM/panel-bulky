@@ -443,7 +443,7 @@ class CartController extends Controller
         }
 
         // Logic kontainer
-        if ($packagingType === 'kontainer') {
+        if ($packagingType === 'container') {
             if ($selectedCount > 1) {
                 return response()->json([
                     'message' => 'Pesanan kontainer hanya bisa 1 item per transaksi. Untuk lebih dari satu, lakukan transaksi terpisah.'
