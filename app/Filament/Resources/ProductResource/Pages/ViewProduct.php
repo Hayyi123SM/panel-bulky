@@ -35,17 +35,20 @@ class ViewProduct extends ViewRecord
                     ]),
                 Section::make('Main Product Information')
                     ->schema([
-                        TextEntry::make('name_trans'),
+                        TextEntry::make('name_trans')->label('Name'),
                         TextEntry::make('id_pallet')->label('ID Pallet'),
                         TextEntry::make('price')
                             ->prefix('Rp ')
                             ->numeric(0, ',', '.'),
                         TextEntry::make('total_quantity'),
+                        TextEntry::make('packaging_type')
+                            ->label('Tipe Pengemasan')
+                            ->formatStateUsing(fn($state) => $state === 'palet' ? 'Palet' : ($state === 'kontainer' ? 'Kontainer' : '-')),
                     ]),
                 Section::make('Additional Product Details')
                     ->schema([
                         TextEntry::make('pdf_file')->label('PDF File'),
-                        TextEntry::make('description_trans')->html(),
+                        TextEntry::make('description_trans')->label('Description')->html(),
                     ]),
                 Section::make('Status and Categorization')
                     ->schema([

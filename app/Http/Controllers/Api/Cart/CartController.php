@@ -72,13 +72,29 @@ class CartController extends Controller
             ]
         );
 
-        $cart->items()->firstOrCreate(
+        $packagingType = $product->packaging_type;
+        $selectedItem = $cart->items()->where('is_selected', true)->with('product')->first();
+
+        $cartItem = $cart->items()->firstOrCreate(
             ['product_id' => $request->input('product_id')],
             [
                 'quantity' => 1,
                 'price' => $product->price,
             ]
         );
+
+        if ($selectedItem) {
+            // Ada item yang sudah ke-checklist
+            if ($selectedItem->product && $selectedItem->product->packaging_type === $packagingType) {
+                $cartItem->is_selected = true;
+            } else {
+                $cartItem->is_selected = false;
+            }
+        } else {
+            // Tidak ada item yang ke-checklist, item baru auto checklist
+            $cartItem->is_selected = true;
+        }
+        $cartItem->save();
 
         $this->updateTotalPrice($cart);
 
@@ -162,15 +178,45 @@ class CartController extends Controller
      */
     public function setSelectedItem(SetSelectedItemRequest $request)
     {
-        $user_id = $request->user()->id;
-        $cart = Cart::whereUserId($user_id)->withCount('items')->firstOrFail();
+        $data = $request->validated();
+        $user = $request->user();
+        $cartItem = CartItem::where('id', $data['cart_item_id'])
+            ->whereHas('cart', fn($q) => $q->where('user_id', $user->id))
+            ->firstOrFail();
 
-        foreach ($request->input('cart_items') as $data) {
-            $cart->items()
-                ->findOrFail($data['id'])
-                ->update(['is_selected' => $data['selected']]);
+        $product = $cartItem->product;
+        $packagingType = $product->packaging_type;
+
+        if ($data['is_selected']) {
+            // Cek apakah ada item lain yang is_selected=true dan packaging_type berbeda
+            $otherSelected = $user->cart->items()
+                ->where('is_selected', true)
+                ->where('id', '!=', $cartItem->id)
+                ->with('product')
+                ->get();
+            $hasDifferentPackaging = $otherSelected->filter(function ($item) use ($packagingType) {
+                return $item->product && $item->product->packaging_type !== $packagingType;
+            })->count() > 0;
+            $hasAnySelected = $otherSelected->count() > 0;
+
+            if ($hasDifferentPackaging || ($hasAnySelected && $otherSelected->first()->product->packaging_type !== $packagingType)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak bisa checklist produk dengan packaging_type berbeda selama masih ada produk lain yang ke-checklist.'
+                ], 422);
+            }
+
+            // Jika semua uncheck atau packaging_type sama, izinkan checklist
+            $cartItem->is_selected = true;
+            $cartItem->save();
+        } else {
+            // User ingin uncheck produk ini
+            $cartItem->is_selected = false;
+            $cartItem->save();
         }
 
+        // Update total price after selection change
+        $cart = $cartItem->cart;
         $this->updateTotalPrice($cart);
 
         return new CartResource($cart);
@@ -267,214 +313,194 @@ class CartController extends Controller
     public function getShippingCost(Request $request)
     {
         $user = $request->user();
-        $cart = Cart::whereUserId($user->id)->withCount('items')->firstOrFail();
+        $cart = Cart::whereUserId($user->id)->with('items.product')->firstOrFail();
 
-        if (!is_null($cart->address_id)) {
-            //            $vehicleTypeIds = $cart->items->pluck('product.vehicle_type_id')->unique();
-            $warehouseIds = $cart->items->pluck('product.warehouse_id')->unique();
+        // Validasi alamat
+        if (is_null($cart->address_id)) {
+            $cart->shipping_cost = 0;
+            $cart->vehicle_type_id = null;
+            $cart->shipping_provider = null;
+            $cart->save();
+            return response()->json([
+                'message' => 'Silakan atur alamat pengiriman sebelum melanjutkan proses.',
+                'errors' => [
+                    'address_id' => ['Alamat belum diatur.']
+                ]
+            ], 422);
+        }
 
-            if ($warehouseIds->count() > 0) {
-                $warehouseId = $warehouseIds->first();
-                $warehouse = Warehouse::find($warehouseId);
+        // Validasi gudang
+        $warehouseIds = $cart->items->pluck('product.warehouse_id')->unique()->filter();
+        if ($warehouseIds->count() === 0) {
+            $cart->shipping_cost = 0;
+            $cart->vehicle_type_id = null;
+            $cart->shipping_provider = null;
+            $cart->save();
+            return response()->json([
+                'message' => 'Produk di keranjang belum memiliki gudang asal. Mohon cek data produk.'
+            ], 422);
+        }
+        $warehouseId = $warehouseIds->first();
+        $warehouse = Warehouse::find($warehouseId);
 
-                //                $vehicles = Deliveree::getVehicleTypes();
-                //                $vehicles = $vehicles['data'];
+        // Validasi item & packaging type
+        $selectedItems = $cart->items->where('is_selected', true);
+        $packagingTypes = $selectedItems->pluck('product.packaging_type')->unique();
+        $selectedCount = $selectedItems->count();
+        if ($packagingTypes->count() > 1) {
+            return response()->json([
+                'message' => 'Pengiriman tidak bisa digabung antara produk palet dan kontainer. Silakan pisahkan transaksi.'
+            ], 422);
+        }
+        $packagingType = $packagingTypes->first();
+        $geoService = app(GeoRegionService::class);
+        $isJabodetabek = $geoService->determineShippingMethod($cart->address->latitude, $cart->address->longitude);
 
-                //                $filteredVehicles = collect($vehicles)->whereIn('id', $vehicleTypeIds);
-                //                $selectedVehicle = $filteredVehicles->sortByDesc(function ($vehicle) {
-                //                    return $vehicle['cargo_cubic_meter'];
-                //                })->first();
-
-                $selectedItemCount = $cart->items()->where('is_selected', true)->count();
-
-                // $selectedVehicle = match (true) {
-                //     $selectedItemCount >= 5 && $selectedItemCount <= 8 => 2703,
-                //     $selectedItemCount >= 9 => 2723,
-                //     default => 2701,
-                // };
-
-                // for testing purpose (sanbox)
-                $geoService = app(GeoRegionService::class);
-                $shippingProvider = $geoService->determineShippingMethod($cart->address->latitude, $cart->address->longitude);
-
-                //cek jabodetabek
-                if ($shippingProvider) {
-                    $selectedVehicle = match (true) {
-                        $selectedItemCount >= 5 && $selectedItemCount <= 8 => 14,
-                        $selectedItemCount >= 9 => 75,
-                        default => 76,
-                    };
-
-                    $data = [
-                        'time_type' => 'now',
-                        'vehicle_type_id' => $selectedVehicle,
-                        'locations' => [
-                            [
-                                'address' => $warehouse->address,
-                                'latitude' => $warehouse->latitude,
-                                'longitude' => $warehouse->longitude,
-                            ],
-                            [
-                                'address' => $cart->address->address,
-                                'latitude' => $cart->address->latitude,
-                                'longitude' => $cart->address->longitude,
-                            ]
+        // Logic palet
+        if ($packagingType === 'palet') {
+            if (!$isJabodetabek) {
+                return response()->json([
+                    'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek.'
+                ], 422);
+            }
+            // ...existing code Deliveree
+            // selected vehicle for production
+            // $selectedVehicle = match (true) {
+            //     $selectedItemCount >= 5 && $selectedItemCount <= 8 => 2703,
+            //     $selectedItemCount >= 9 => 2723,
+            //     default => 2701,
+            // };
+            $selectedVehicle = match (true) {
+                $selectedCount >= 5 && $selectedCount <= 8 => 14,
+                $selectedCount >= 9 => 75,
+                default => 76,
+            };
+            $data = [
+                'time_type' => 'now',
+                'vehicle_type_id' => $selectedVehicle,
+                'locations' => [
+                    [
+                        'address' => $warehouse->address,
+                        'latitude' => $warehouse->latitude,
+                        'longitude' => $warehouse->longitude,
+                    ],
+                    [
+                        'address' => $cart->address->address,
+                        'latitude' => $cart->address->latitude,
+                        'longitude' => $cart->address->longitude,
+                    ]
+                ]
+            ];
+            $costs = Deliveree::getDeliveryQuote($data);
+            if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                $cost = $costs['data'][0];
+                $cart->shipping_cost = $cost['total_fees'];
+                $cart->vehicle_type_id = $selectedVehicle;
+                $cart->shipping_provider = 'Deliveree';
+                $cart->save();
+                return response()->json([
+                    'data' => [
+                        'total_cost' => [
+                            'value' => $cost['total_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['total_fees'], 0, ',', '.')
+                        ],
+                        'total_distance' => $cost['total_distance'],
+                        'distance_fees' => [
+                            'value' => $cost['distance_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
+                        ],
+                        'way_point_fees' => [
+                            'value' => $cost['way_point_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
+                        ],
+                        'cod_pod_fees' => [
+                            'value' => $cost['cod_pod_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
+                        ],
+                        'extra_fees' => [
+                            'value' => $cost['extra_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
+                        ],
+                        'surcharges_fees' => [
+                            'value' => $cost['surcharges_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
+                        ],
+                        'surcharges_adjustments_fees' => [
+                            'value' => $cost['surcharges_adjustments_fees'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
                         ]
-                    ];
-                    $costs = Deliveree::getDeliveryQuote($data);
-
-                    if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
-                        $cost = $costs['data'][0];
-
-                        $cart->shipping_cost = $cost['total_fees'];
-                        $cart->vehicle_type_id = $selectedVehicle;
-                        $cart->shipping_provider = 'Deliveree';
-                        $cart->save();
-
-                        return response()->json([
-                            'data' => [
-                                'total_cost' => [
-                                    'value' => $cost['total_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['total_fees'], 0, ',', '.')
-                                ],
-                                'total_distance' => $cost['total_distance'],
-                                'distance_fees' => [
-                                    'value' => $cost['distance_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
-                                ],
-                                'way_point_fees' => [
-                                    'value' => $cost['way_point_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
-                                ],
-                                'cod_pod_fees' => [
-                                    'value' => $cost['cod_pod_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
-                                ],
-                                'extra_fees' => [
-                                    'value' => $cost['extra_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
-                                ],
-                                'surcharges_fees' => [
-                                    'value' => $cost['surcharges_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
-                                ],
-                                'surcharges_adjustments_fees' => [
-                                    'value' => $cost['surcharges_adjustments_fees'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
-                                ]
-                            ]
-                        ]);
-                    } else {
-                        $cart->shipping_cost = 0;
-                        $cart->vehicle_type_id = null;
-                        $cart->shipping_provider = null;
-                        $cart->save();
-
-                        return response()->json([
-                            'message' => 'Alamat pengiriman tidak terjangkau.',
-                            'shipping_cost' => false,
-                            'costs' => $costs
-                        ], 422);
-                    }
-                } else {
-                    // jika di luar jabodetabek
-                    $apiForwarder = app(ApiRequest::class);
-                    $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
-                    $city = preg_replace([
-                        '/^(Kota|Kabupaten)\s+/i', // hapus awalan
-                        '/\s+(City|Regency)$/i'    // hapus akhiran
-                    ], '', $location['city']);
-                    $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
-                        'city_name' => $city
-                    ]);
-                    $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
-                        "origin_city" => 208, // POL 13 = jakarta, 208 = Depok
-                        "destination_city" => $destination['data'][0]['item_id'], // POD
-                        "destination_subdistrict" => 0, // Tidak mandatory
-                        "transport_type" => $location['transport_type'] ?? 1, // Mandatory [Sea Freight = 1; Land Transport = 3]
-                        "load_type" => $location['load_type'] ?? 1, // Mandatory [FCL = 1; FTL = 4]
-                        "service_type" => 1 // Mandatory [Reguler = 1]
-                    ]);
-
-                    // For Checking Purpose
-                    // return response()->json([
-                    //     'msg' => $destination
-                    // ]);
-                    // return response()->json([
-                    //     'ceking' => isset($costs['data']) && collect($costs['data'])->count() > 0,
-                    //     'city' => $city,
-                    //     'costs' => $costs
-                    // ], 422);
-
-                    if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
-                        $cost = $costs['data'][0];
-
-                        $cart->shipping_cost = $cost['tariff_idr'];
-                        $cart->vehicle_type_id = null;
-                        $cart->shipping_provider = 'Forwarder';
-                        $cart->requirement_provider = $cost;
-                        $cart->save();
-
-                        return response()->json([
-                            'data' => [
-                                'total_cost' => [
-                                    'value' => $cost['tariff_idr'],
-                                    'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
-                                ],
-                                // 'total_distance' => $cost['total_distance'],
-                                // 'distance_fees' => [
-                                //     'value' => $cost['distance_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['distance_fees'], 0, ',', '.')
-                                // ],
-                                // 'way_point_fees' => [
-                                //     'value' => $cost['way_point_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['way_point_fees'], 0, ',', '.')
-                                // ],
-                                // 'cod_pod_fees' => [
-                                //     'value' => $cost['cod_pod_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['cod_pod_fees'], 0, ',', '.')
-                                // ],
-                                // 'extra_fees' => [
-                                //     'value' => $cost['extra_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['extra_fees'], 0, ',', '.')
-                                // ],
-                                // 'surcharges_fees' => [
-                                //     'value' => $cost['surcharges_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_fees'], 0, ',', '.')
-                                // ],
-                                // 'surcharges_adjustments_fees' => [
-                                //     'value' => $cost['surcharges_adjustments_fees'],
-                                //     'formatted' => $cost['currency'] . ' ' . number_format($cost['surcharges_adjustments_fees'], 0, ',', '.')
-                                // ]
-                            ]
-                        ]);
-                    } else {
-                        $cart->shipping_cost = 0;
-                        $cart->vehicle_type_id = null;
-                        $cart->shipping_provider = null;
-                        $cart->save();
-
-                        return response()->json([
-                            'message' => 'Alamat pengiriman tidak terjangkau.',
-                            'shipping_cost' => false,
-                            'costs' => $costs
-                        ], 422);
-                    }
-                }
+                    ]
+                ]);
+            } else {
+                $cart->shipping_cost = 0;
+                $cart->vehicle_type_id = null;
+                $cart->shipping_provider = null;
+                $cart->save();
+                return response()->json([
+                    'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
+                ], 422);
             }
         }
 
-        $cart->shipping_cost = 0;
-        $cart->vehicle_type_id = null;
-        $cart->shipping_provider = null;
-        $cart->save();
-
-        return response()->json([
-            'message' => 'Anda belum mengatur alamat pengiriman.',
-            'errors' => [
-                'address_id' => ['Anda belum mengatur alamat pengiriman.']
-            ]
-        ], 422);
+        // Logic kontainer
+        if ($packagingType === 'kontainer') {
+            if ($selectedCount > 1) {
+                return response()->json([
+                    'message' => 'Pesanan kontainer hanya bisa 1 item per transaksi. Untuk lebih dari satu, lakukan transaksi terpisah.'
+                ], 422);
+            }
+            if ($isJabodetabek) {
+                return response()->json([
+                    'message' => 'Pengiriman kontainer hanya tersedia untuk alamat di luar Jabodetabek.'
+                ], 422);
+            }
+            $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
+            $city = preg_replace([
+                '/^(Kota|Kabupaten)\s+/i',
+                '/\s+(City|Regency)$/i'
+            ], '', $location['city']);
+            $apiForwarder = app(ApiRequest::class);
+            $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
+                'city_name' => $city
+            ]);
+            if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
+                return response()->json([
+                    'message' => 'Kota tujuan tidak tersedia untuk pengiriman kontainer. Silakan pilih kota lain.'
+                ], 422);
+            }
+            $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
+                "origin_city" => 208,
+                "destination_city" => $destination['data'][0]['item_id'],
+                "destination_subdistrict" => 0,
+                "transport_type" => $location['transport_type'] ?? 1,
+                "load_type" => $location['load_type'] ?? 1,
+                "service_type" => 1
+            ]);
+            if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                $cost = $costs['data'][0];
+                $cart->shipping_cost = $cost['tariff_idr'];
+                $cart->vehicle_type_id = null;
+                $cart->shipping_provider = 'Forwarder';
+                $cart->requirement_provider = $cost;
+                $cart->save();
+                return response()->json([
+                    'data' => [
+                        'total_cost' => [
+                            'value' => $cost['tariff_idr'],
+                            'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
+                        ]
+                    ]
+                ]);
+            } else {
+                $cart->shipping_cost = 0;
+                $cart->vehicle_type_id = null;
+                $cart->shipping_provider = null;
+                $cart->save();
+                return response()->json([
+                    'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
+                ], 422);
+            }
+        }
     }
 
     /**

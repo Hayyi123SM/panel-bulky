@@ -54,6 +54,7 @@ class ProductController extends Controller
             ->when($request->price_max, fn($q) => $q->where('price', '<=', $request->price_max))
             ->whereIsActive(true)
             ->when($request->random, fn($q) => $q->inRandomOrder())
+            ->when($request->packaging_type, fn($q) => $q->where('packaging_type', $request->packaging_type))
             ->with('warehouse');
 
         $products = $query->paginate($request->get('per_page', 15));

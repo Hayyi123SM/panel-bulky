@@ -19,7 +19,8 @@ class ProductsRequest extends FormRequest
             'per_page' => 'nullable|integer|min:1',
             'price_min' => 'nullable|integer|min:0',
             'price_max' => 'nullable|integer|min:10000',
-            'random' => 'nullable|boolean'
+            'random' => 'nullable|boolean',
+            'packaging_type' => 'nullable|in:palet,kontainer',
         ];
     }
 
