@@ -39,10 +39,7 @@ class CartResource extends JsonResource
 
         $packaging_types = [];
         foreach ($grouped as $type => $items) {
-            $packaging_types[] = [
-                'type' => $type,
-                'items' => CartItemResource::collection($items->values()),
-            ];
+            $packaging_types[$type] = CartItemResource::collection($items->values());
         }
 
         return [
