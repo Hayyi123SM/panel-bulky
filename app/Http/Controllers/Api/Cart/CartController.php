@@ -73,8 +73,6 @@ class CartController extends Controller
         );
 
         $packagingType = $product->packaging_type;
-        $selectedItem = $cart->items()->where('is_selected', true)->with('product')->first();
-
         $cartItem = $cart->items()->firstOrCreate(
             ['product_id' => $request->input('product_id')],
             [
@@ -83,16 +81,32 @@ class CartController extends Controller
             ]
         );
 
-        if ($selectedItem) {
-            // Ada item yang sudah ke-checklist
-            if ($selectedItem->product && $selectedItem->product->packaging_type === $packagingType) {
-                $cartItem->is_selected = true;
-            } else {
-                $cartItem->is_selected = false;
+        if ($packagingType === 'container') {
+            // Uncheck semua container yang sudah terceklis
+            $selectedContainers = $cart->items()
+                ->whereHas('product', fn($q) => $q->where('packaging_type', 'container'))
+                ->where('is_selected', true)
+                ->get();
+            foreach ($selectedContainers as $item) {
+                if ($item->id !== $cartItem->id) {
+                    $item->is_selected = false;
+                    $item->save();
+                }
             }
-        } else {
-            // Tidak ada item yang ke-checklist, item baru auto checklist
+            // Produk baru di-checklist
             $cartItem->is_selected = true;
+        } else {
+            // Logic lama untuk palet dan lainnya
+            $selectedItem = $cart->items()->where('is_selected', true)->with('product')->first();
+            if ($selectedItem) {
+                if ($selectedItem->product && $selectedItem->product->packaging_type === $packagingType) {
+                    $cartItem->is_selected = true;
+                } else {
+                    $cartItem->is_selected = false;
+                }
+            } else {
+                $cartItem->is_selected = true;
+            }
         }
         $cartItem->save();
 
