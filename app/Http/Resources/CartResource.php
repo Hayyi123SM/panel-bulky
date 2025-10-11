@@ -31,6 +31,20 @@ class CartResource extends JsonResource
             }
         }
 
+        // Group items by packaging_type for flexible response
+        $allItems = $this->items->load('product');
+        $grouped = $allItems->groupBy(function ($item) {
+            return $item->product?->packaging_type ?? 'unknown';
+        });
+
+        $packaging_types = [];
+        foreach ($grouped as $type => $items) {
+            $packaging_types[] = [
+                'type' => $type,
+                'items' => CartItemResource::collection($items->values()),
+            ];
+        }
+
         return [
             'id' => $this->id,
             'total_price' => [
@@ -66,7 +80,7 @@ class CartResource extends JsonResource
             'payment_method' => $this->payment_method,
             'items_count' => $this->items_count,
             'address' => new AddressResource($this->address),
-            'items' => CartItemResource::collection($items),
+            'packaging_types' => $packaging_types,
             'user' => new UserResource($this->whenLoaded('user')),
         ];
     }

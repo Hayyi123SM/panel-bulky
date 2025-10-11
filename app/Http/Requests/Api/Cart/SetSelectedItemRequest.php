@@ -9,8 +9,10 @@ class SetSelectedItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cart_item_id' => 'required|exists:cart_items,id',
-            'is_selected' => 'required|boolean',
+            // select_all_type only allowed 'palet', required if cart_item_id/is_selected not present
+            'select_all_type' => 'required_without_all:cart_item_id,is_selected|in:palet',
+            'cart_item_id' => 'required_with:is_selected|exists:cart_items,id',
+            'is_selected' => 'required_with:cart_item_id|boolean',
         ];
     }
 

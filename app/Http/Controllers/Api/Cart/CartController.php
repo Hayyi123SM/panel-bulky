@@ -157,7 +157,23 @@ class CartController extends Controller
 
         $this->updateTotalPrice($cart);
 
-        return new CartResource($cart);
+        // Group items by packaging_type for flexible response
+        $items = $cart->items()->with('product')->get();
+        $grouped = $items->groupBy(function ($item) {
+            return $item->product?->packaging_type ?? 'unknown';
+        });
+
+        // Prepare flexible structure for resource
+        $packaging_types = [];
+        foreach ($grouped as $type => $items) {
+            $packaging_types[] = [
+                'type' => $type,
+                'items' => $items->values(),
+            ];
+        }
+
+        // Pass grouped items as additional data to resource
+        return (new CartResource($cart));
     }
 
     /**
@@ -180,44 +196,75 @@ class CartController extends Controller
     {
         $data = $request->validated();
         $user = $request->user();
-        $cartItem = CartItem::where('id', $data['cart_item_id'])
-            ->whereHas('cart', fn($q) => $q->where('user_id', $user->id))
-            ->firstOrFail();
+        $cart = Cart::whereUserId($user->id)->firstOrFail();
 
-        $product = $cartItem->product;
-        $packagingType = $product->packaging_type;
-
-        if ($data['is_selected']) {
-            // Cek apakah ada item lain yang is_selected=true dan packaging_type berbeda
-            $otherSelected = $user->cart->items()
-                ->where('is_selected', true)
-                ->where('id', '!=', $cartItem->id)
-                ->with('product')
-                ->get();
-            $hasDifferentPackaging = $otherSelected->filter(function ($item) use ($packagingType) {
-                return $item->product && $item->product->packaging_type !== $packagingType;
-            })->count() > 0;
-            $hasAnySelected = $otherSelected->count() > 0;
-
-            if ($hasDifferentPackaging || ($hasAnySelected && $otherSelected->first()->product->packaging_type !== $packagingType)) {
+        // Bulk select by packaging_type
+        if (isset($data['select_all_type'])) {
+            $type = $data['select_all_type'];
+            if ($type === 'palet') {
+                // Select all palet, unselect all container
+                foreach ($cart->items as $item) {
+                    if ($item->product && $item->product->packaging_type === 'palet') {
+                        $item->is_selected = true;
+                    } else {
+                        $item->is_selected = false;
+                    }
+                    $item->save();
+                }
+            } elseif ($type === 'container') {
+                // Select all for container is not allowed
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak bisa checklist produk dengan packaging_type berbeda selama masih ada produk lain yang ke-checklist.'
+                    'message' => 'Tidak bisa checklist semua produk dengan type kontainer. Hanya satu item kontainer yang bisa dipilih.'
                 ], 422);
             }
-
-            // Jika semua uncheck atau packaging_type sama, izinkan checklist
-            $cartItem->is_selected = true;
-            $cartItem->save();
-        } else {
-            // User ingin uncheck produk ini
-            $cartItem->is_selected = false;
-            $cartItem->save();
+        } elseif (isset($data['cart_item_id']) && isset($data['is_selected'])) {
+            // Single item select/unselect
+            $cartItem = CartItem::where('id', $data['cart_item_id'])
+                ->whereHas('cart', fn($q) => $q->where('user_id', $user->id))
+                ->firstOrFail();
+            $packagingType = $cartItem->product?->packaging_type;
+            if ($packagingType === 'container' && $data['is_selected']) {
+                // Unselect all palet
+                foreach ($cart->items as $item) {
+                    if ($item->product && $item->product->packaging_type === 'palet') {
+                        $item->is_selected = false;
+                        $item->save();
+                    }
+                }
+                // Unselect all other container items except the one being selected
+                foreach ($cart->items as $item) {
+                    if ($item->product && $item->product->packaging_type === 'container' && $item->id != $cartItem->id) {
+                        $item->is_selected = false;
+                        $item->save();
+                    }
+                }
+                // Select only the chosen container item
+                $cartItem->is_selected = true;
+                $cartItem->save();
+            } elseif ($packagingType === 'palet') {
+                // Unselect all container
+                foreach ($cart->items as $item) {
+                    if ($item->product && $item->product->packaging_type === 'container') {
+                        $item->is_selected = false;
+                        $item->save();
+                    }
+                }
+                // Update palet item
+                $cartItem->is_selected = $data['is_selected'];
+                $cartItem->save();
+            } else {
+                // Fallback for unknown type
+                $cartItem->is_selected = $data['is_selected'];
+                $cartItem->save();
+            }
         }
 
         // Update total price after selection change
-        $cart = $cartItem->cart;
         $this->updateTotalPrice($cart);
+
+        // Reload items to ensure response is up-to-date
+        $cart->load('items.product');
 
         return new CartResource($cart);
     }
