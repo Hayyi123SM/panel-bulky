@@ -77,7 +77,7 @@ class CartResource extends JsonResource
             'payment_method' => $this->payment_method,
             'items_count' => $this->items_count,
             'address' => new AddressResource($this->address),
-            'packaging_types' => $packaging_types,
+            'items' => $packaging_types,
             'user' => new UserResource($this->whenLoaded('user')),
         ];
     }
