@@ -30,10 +30,12 @@ use App\Services\GeoRegion\GeoRegionService;
 use App\Settings\PickupInfoSetting;
 use App\Settings\PpnSettings;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+// Removed duplicate use statement for Illuminate\Support\Facades\DB
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -73,42 +75,52 @@ class CartController extends Controller
         );
 
         $packagingType = $product->packaging_type;
-        $cartItem = $cart->items()->firstOrCreate(
-            ['product_id' => $request->input('product_id')],
-            [
-                'quantity' => 1,
-                'price' => $product->price,
-            ]
-        );
 
-        if ($packagingType === 'container') {
-            // Uncheck semua container yang sudah terceklis
-            $selectedContainers = $cart->items()
-                ->whereHas('product', fn($q) => $q->where('packaging_type', 'container'))
-                ->where('is_selected', true)
-                ->get();
-            foreach ($selectedContainers as $item) {
-                if ($item->id !== $cartItem->id) {
-                    $item->is_selected = false;
-                    $item->save();
-                }
-            }
-            // Produk baru di-checklist
-            $cartItem->is_selected = true;
-        } else {
-            // Logic lama untuk palet dan lainnya
-            $selectedItem = $cart->items()->where('is_selected', true)->with('product')->first();
-            if ($selectedItem) {
-                if ($selectedItem->product && $selectedItem->product->packaging_type === $packagingType) {
-                    $cartItem->is_selected = true;
-                } else {
-                    $cartItem->is_selected = false;
-                }
-            } else {
+        try {
+            DB::transaction(function () use ($cart, $product, $request, $packagingType) {
+                $cartItem = $cart->items()->firstOrCreate(
+                    ['product_id' => $request->input('product_id')],
+                    [
+                        'quantity' => 1,
+                        'price' => $product->price,
+                    ]
+                );
+
+                // Produk baru langsung di-checklist
                 $cartItem->is_selected = true;
-            }
+                $cartItem->save();
+
+                // Uncheck semua produk lama dengan type berbeda
+                $cart->items()
+                    ->where('is_selected', true)
+                    ->where('id', '!=', $cartItem->id)
+                    ->whereHas('product', fn($q) => $q->where('packaging_type', '!=', $packagingType))
+                    ->get()
+                    ->each(function ($item) {
+                        $item->is_selected = false;
+                        $item->save();
+                    });
+
+                // Logic khusus container: hanya satu yang bisa terceklis
+                if ($packagingType === 'container') {
+                    $cart->items()
+                        ->where('is_selected', true)
+                        ->where('id', '!=', $cartItem->id)
+                        ->whereHas('product', fn($q) => $q->where('packaging_type', 'container'))
+                        ->get()
+                        ->each(function ($item) {
+                            $item->is_selected = false;
+                            $item->save();
+                        });
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('Error adding product to cart: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambah produk ke cart.',
+            ], 500);
         }
-        $cartItem->save();
 
         $this->updateTotalPrice($cart);
 

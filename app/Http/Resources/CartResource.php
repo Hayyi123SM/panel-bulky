@@ -37,7 +37,10 @@ class CartResource extends JsonResource
             return $item->product?->packaging_type ?? 'unknown';
         });
 
-        $packaging_types = [];
+        $packaging_types = [
+            'palet' => [],
+            'container' => [],
+        ];
         foreach ($grouped as $type => $items) {
             $packaging_types[$type] = CartItemResource::collection($items->values());
         }
