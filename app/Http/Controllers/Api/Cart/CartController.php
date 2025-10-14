@@ -720,6 +720,12 @@ class CartController extends Controller
 
         $password = null;
         if (!$user) {
+            // Validasi phone_number unik
+            if (User::where('phone_number', $data['phone_number'])->exists()) {
+                return response()->json([
+                    'phone_number' => ['Nomor telepon sudah terdaftar.']
+                ], 422);
+            }
             $username = 'user_' . substr(md5($data['email'] . $data['phone_number']), 0, 8);
             $name = $data['name'] ?? 'Customer ' . $data['phone_number'];
             $password = $data['password'] ?? bin2hex(random_bytes(4));
