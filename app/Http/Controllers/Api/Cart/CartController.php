@@ -24,6 +24,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Notifications\RegisteredNotification;
 use App\Services\Deliveree\Deliveree;
 use App\Services\Forwarder\ApiRequest;
 use App\Services\GeoRegion\GeoRegionService;
@@ -35,6 +36,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -410,6 +412,7 @@ class CartController extends Controller
             $cart->shipping_provider = null;
             $cart->save();
             return response()->json([
+                'status' => 'no_warehouse',
                 'message' => 'Produk di keranjang belum memiliki gudang asal. Mohon cek data produk.'
             ], 422);
         }
@@ -422,6 +425,7 @@ class CartController extends Controller
         $selectedCount = $selectedItems->count();
         if ($packagingTypes->count() > 1) {
             return response()->json([
+                'status' => 'mixed_packaging_type',
                 'message' => 'Pengiriman tidak bisa digabung antara produk palet dan kontainer. Silakan pisahkan transaksi.'
             ], 422);
         }
@@ -433,6 +437,7 @@ class CartController extends Controller
         if ($packagingType === 'palet') {
             if (!$isJabodetabek) {
                 return response()->json([
+                    'status' => 'unavailable_address',
                     'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek.'
                 ], 422);
             }
@@ -510,6 +515,7 @@ class CartController extends Controller
                 $cart->shipping_provider = null;
                 $cart->save();
                 return response()->json([
+                    'status' => 'unavailable_address',
                     'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
                 ], 422);
             }
@@ -519,11 +525,13 @@ class CartController extends Controller
         if ($packagingType === 'container') {
             if ($selectedCount > 1) {
                 return response()->json([
+                    'status' => 'mixed_packaging_type',
                     'message' => 'Pesanan kontainer hanya bisa 1 item per transaksi. Untuk lebih dari satu, lakukan transaksi terpisah.'
                 ], 422);
             }
             if ($isJabodetabek) {
                 return response()->json([
+                    'status' => 'unavailable_address',
                     'message' => 'Pengiriman kontainer hanya tersedia untuk alamat di luar Jabodetabek.'
                 ], 422);
             }
@@ -538,6 +546,7 @@ class CartController extends Controller
             ]);
             if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
                 return response()->json([
+                    'status' => 'unavailable_address',
                     'message' => 'Kota tujuan tidak tersedia untuk pengiriman kontainer. Silakan pilih kota lain.'
                 ], 422);
             }
@@ -570,6 +579,7 @@ class CartController extends Controller
                 $cart->shipping_provider = null;
                 $cart->save();
                 return response()->json([
+                    'status' => 'unavailable_address',
                     'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
                 ], 422);
             }
@@ -692,21 +702,55 @@ class CartController extends Controller
 
     public function placeOrderInWMS(PlaceOrderRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+        // Validasi email dan code_document_sale selalu required
+        $data = $request->all();
+        $user = User::where('email', $data['email'])->first();
+        $rules = [
+            'email' => 'required|email',
             'code_document_sale' => 'required|string',
-        ]);
-
+        ];
+        // phone_number hanya required jika user baru
+        if (!$user) {
+            $rules['phone_number'] = 'required';
+        }
+        $validator = Validator::make($data, $rules);
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        $user = User::where('email', $request->input('email'))->first();
+        $password = null;
         if (!$user) {
-            throw ValidationException::withMessages(['email' => 'User not found.']);
+            $username = 'user_' . substr(md5($data['email'] . $data['phone_number']), 0, 8);
+            $name = $data['name'] ?? 'Customer ' . $data['phone_number'];
+            $password = $data['password'] ?? bin2hex(random_bytes(4));
+            $user = User::create([
+                'email' => $data['email'],
+                'phone_number' => $data['phone_number'],
+                'name' => $name,
+                'username' => $username,
+                'password' => Hash::make($password),
+            ]);
+            // Kirim notifikasi email & WA berisi password
+            $user->notify(new RegisteredNotification($user, $password));
         }
 
-        $product = Product::whereName('Palet ' . $request->input('code_document_sale'))
+        // Validasi order duplikat
+        $existingOrder = Order::where('user_id', $user->id)
+            ->whereHas('items', function ($q) use ($data) {
+                $q->whereHas('product', function ($p) use ($data) {
+                    $p->where('name', 'Palet ' . $data['code_document_sale']);
+                });
+            })
+            ->whereIn('order_status', ['pending', 'paid', 'processing']) // sesuaikan status aktif di project
+            ->first();
+        if ($existingOrder) {
+            return response()->json([
+                'status' => 'duplicate_order',
+                'message' => 'Order produk ini sudah dibuat.'
+            ], 422);
+        }
+
+        $product = Product::whereName('Palet ' . $data['code_document_sale'])
             ->whereIsActive(0)
             ->whereSoldOut(1)
             ->first();
@@ -744,7 +788,6 @@ class CartController extends Controller
                 'tax_amount' => $tax->enabled ? $taxAmount : 0,
                 'is_tax_active' => $tax->enabled,
             ]);
-
 
             $order->items()->create([
                 'product_id' => $product->id,
