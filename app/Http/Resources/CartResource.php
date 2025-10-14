@@ -22,21 +22,19 @@ class CartResource extends JsonResource
 
         $total = $this->total_price + $shipping_cost - ($this->discount_amount ?? 0);
 
-        $items = $this->items->load('product');
+        $isCheckout = request()->filled('mode') && request('mode') == 'checkout';
 
-        if (request()->filled('mode') && \request('mode') == 'checkout') {
-            $items = $this->items->where('is_selected', true)->load('product');
-            if ($tax->enabled) {
-                $total += $this->tax_amount;
-            }
+        // Filter items sesuai mode
+        $filteredItems = $isCheckout
+            ? $this->items->where('is_selected', true)->load('product')
+            : $this->items->load('product');
+
+        if ($isCheckout && $tax->enabled) {
+            $total += $this->tax_amount;
         }
 
-        // Group items by packaging_type for flexible response
-        $allItems = $this->items->load('product');
-        $grouped = $allItems->groupBy(function ($item) {
-            return $item->product?->packaging_type ?? 'unknown';
-        });
-
+        // Group items by packaging_type untuk response
+        $grouped = $filteredItems->groupBy(fn($item) => $item->product?->packaging_type ?? 'unknown');
         $packaging_types = [
             'palet' => [],
             'container' => [],
@@ -80,7 +78,7 @@ class CartResource extends JsonResource
             'payment_method' => $this->payment_method,
             'items_count' => $this->items_count,
             'address' => new AddressResource($this->address),
-            'items' => $packaging_types,
+            'items' => $isCheckout ? CartItemResource::collection($filteredItems) : $packaging_types,
             'user' => new UserResource($this->whenLoaded('user')),
         ];
     }

@@ -1,9 +1,12 @@
 <?php
 
+
 namespace App\Http\Resources;
+
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 /** @mixin \App\Models\Product */
 class ProductResource extends JsonResource
@@ -12,7 +15,9 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'images' => array_map(fn($image) => \Storage::disk('public')->url($image), $this->images),
+            'images' => !empty($this->images)
+                ? array_map(fn($image) => Storage::disk('public')->url($image), $this->images)
+                : [asset('images/product-default.png')],
             'name' => $this->name,
             'name_trans' => $this->getTranslations('name_trans'),
             'slug' => $this->slug,
@@ -28,7 +33,7 @@ class ProductResource extends JsonResource
             ],
             'total_quantity' => $this->total_quantity,
             'packaging_type' => $this->packaging_type,
-            'pdf_file' => \Storage::disk('public')->url($this->pdf_file),
+            'pdf_file' => Storage::disk('public')->url($this->pdf_file),
             'description' => $this->description,
             'description_trans' => $this->getTranslations('description_trans'),
             'brands' => ProductBrandResource::collection($this->whenLoaded('brands')),
