@@ -11,7 +11,10 @@ use Filament\Actions\Exports\Models\Export;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\ChannelManager;
+use App\Notifications\WhatsAppChannel;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use Midtrans\Config;
@@ -24,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-//        $this->app->bind(Authenticatable::class, Admin::class);
+        //        $this->app->bind(Authenticatable::class, Admin::class);
     }
 
     /**
@@ -50,9 +53,14 @@ class AppServiceProvider extends ServiceProvider
         Config::$serverKey = config('services.midtrans.server_key');
         Config::$isProduction = config('services.midtrans.is_production', false);
 
-        \Event::subscribe(UserEventListener::class);
-        \Event::subscribe(OrderEventListener::class);
+        Event::subscribe(UserEventListener::class);
+        Event::subscribe(OrderEventListener::class);
 
         Configuration::setXenditKey(config('xendit.secret_key'));
+
+        // Register custom WhatsApp notification channel
+        $this->app->make(ChannelManager::class)->extend('whatsapp', function ($app) {
+            return new WhatsAppChannel();
+        });
     }
 }
