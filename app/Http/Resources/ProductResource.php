@@ -17,7 +17,7 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'images' => !empty($this->images)
                 ? array_map(fn($image) => Storage::disk('public')->url($image), $this->images)
-                : [asset('images/product-default.png')],
+                : [Storage::disk('public')->url('images/product-default.png')],
             'name' => $this->name,
             'name_trans' => $this->getTranslations('name_trans'),
             'slug' => $this->slug,
