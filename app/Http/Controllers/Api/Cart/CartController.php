@@ -7,6 +7,7 @@ use App\Enums\InvoiceStatusEnum;
 use App\Enums\OrderPaymentTypeEnum;
 use App\Enums\ShippingMethodEnum;
 use App\Events\Order\OrderCreatedEvent;
+use App\Helpers\PhoneHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Cart\AddToCartRequest;
 use App\Http\Requests\Api\Cart\PlaceOrderRequest;
@@ -739,8 +740,7 @@ class CartController extends Controller
         // Normalisasi phone_number sebelum validasi unik dan simpan
         $normalizedPhone = null;
         if (isset($data['phone_number'])) {
-            $phoneFormater = new \App\Traits\PhoneFormater();
-            $normalizedPhone = $phoneFormater->formatIndonesianPhoneNumber($data['phone_number']);
+            $normalizedPhone = PhoneHelper::formatIndonesianPhoneNumber($data['phone_number']);
         }
 
         $password = null;
@@ -754,13 +754,15 @@ class CartController extends Controller
             $username = 'user_' . substr(md5($data['email'] . $normalizedPhone), 0, 8);
             $name = $data['name'] ?? 'Customer ' . $normalizedPhone;
             $password = $data['password'] ?? bin2hex(random_bytes(4));
-            $user = User::create([
-                'email' => $data['email'],
-                'phone_number' => $normalizedPhone,
-                'name' => $name,
-                'username' => $username,
-                'password' => Hash::make($password),
-            ]);
+            $user = activity()->withoutLogs(function () use ($data, $normalizedPhone, $name, $username, $password) {
+                return User::create([
+                    'email' => $data['email'],
+                    'phone_number' => $normalizedPhone,
+                    'name' => $name,
+                    'username' => $username,
+                    'password' => Hash::make($password),
+                ]);
+            });
             // Kirim notifikasi email & WA berisi password
             $user->notify(new RegisteredNotification($user, $password));
         }
