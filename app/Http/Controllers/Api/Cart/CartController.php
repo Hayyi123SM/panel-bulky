@@ -230,10 +230,18 @@ class CartController extends Controller
         if (isset($data['select_all_type'])) {
             $type = $data['select_all_type'];
             if ($type === 'palet') {
+                // Ambil semua item palet
+                $paletItems = $cart->items->filter(function ($item) {
+                    return $item->product && $item->product->packaging_type === 'palet';
+                });
+
+                $allSelected = $paletItems->every(function ($item) {
+                    return $item->is_selected;
+                });
                 // Select all palet, unselect all container
                 foreach ($cart->items as $item) {
                     if ($item->product && $item->product->packaging_type === 'palet') {
-                        $item->is_selected = true;
+                        $item->is_selected = !$allSelected;
                     } else {
                         $item->is_selected = false;
                     }
@@ -288,11 +296,11 @@ class CartController extends Controller
             }
         }
 
-        // Update total price after selection change
-        $this->updateTotalPrice($cart);
-
         // Reload items to ensure response is up-to-date
         $cart->load('items.product');
+
+        // Update total price after selection change
+        $this->updateTotalPrice($cart);
 
         return new CartResource($cart);
     }
