@@ -709,6 +709,16 @@ class CartController extends Controller
             'email' => 'required|email',
             'code_document_sale' => 'required|string',
         ];
+        $isRegisterEmail = isset($data['register_email']) && $data['register_email'] === true;
+
+        // Jika user belum terdaftar dan belum ada flag register_email, return response khusus
+        if (!$user && !$isRegisterEmail) {
+            return response()->json([
+                'status' => 'email_not_registered',
+                'message' => 'Email belum terdaftar di Bulky. Apakah ingin mendaftarkan email ini?'
+            ], 422);
+        }
+
         // phone_number hanya required jika user baru
         if (!$user) {
             $rules['phone_number'] = 'required';
@@ -718,20 +728,27 @@ class CartController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
+        // Normalisasi phone_number sebelum validasi unik dan simpan
+        $normalizedPhone = null;
+        if (isset($data['phone_number'])) {
+            $phoneFormater = new \App\Traits\PhoneFormater();
+            $normalizedPhone = $phoneFormater->formatIndonesianPhoneNumber($data['phone_number']);
+        }
+
         $password = null;
         if (!$user) {
-            // Validasi phone_number unik
-            if (User::where('phone_number', $data['phone_number'])->exists()) {
+            // Validasi phone_number unik setelah dinormalisasi
+            if (User::where('phone_number', $normalizedPhone)->exists()) {
                 return response()->json([
                     'phone_number' => ['Nomor telepon sudah terdaftar.']
                 ], 422);
             }
-            $username = 'user_' . substr(md5($data['email'] . $data['phone_number']), 0, 8);
-            $name = $data['name'] ?? 'Customer ' . $data['phone_number'];
+            $username = 'user_' . substr(md5($data['email'] . $normalizedPhone), 0, 8);
+            $name = $data['name'] ?? 'Customer ' . $normalizedPhone;
             $password = $data['password'] ?? bin2hex(random_bytes(4));
             $user = User::create([
                 'email' => $data['email'],
-                'phone_number' => $data['phone_number'],
+                'phone_number' => $normalizedPhone,
                 'name' => $name,
                 'username' => $username,
                 'password' => Hash::make($password),

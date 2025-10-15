@@ -15,6 +15,7 @@ use Illuminate\Notifications\ChannelManager;
 use App\Notifications\WhatsAppChannel;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use Midtrans\Config;
@@ -58,8 +59,8 @@ class AppServiceProvider extends ServiceProvider
 
         Configuration::setXenditKey(config('xendit.secret_key'));
 
-        // Register custom WhatsApp notification channel
-        $this->app->make(ChannelManager::class)->extend('whatsapp', function ($app) {
+        // Best practice: extend custom WhatsApp channel langsung ke Notification facade
+        Notification::extend('whatsapp', function ($app) {
             return new WhatsAppChannel();
         });
     }
