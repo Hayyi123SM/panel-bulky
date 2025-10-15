@@ -40,7 +40,9 @@ class RegisteredNotification extends Notification implements ShouldQueue
             ->line('Dengan bulky.id, Anda akan mendapatkan akses ke berbagai fitur menarik yang akan membantu Anda menemukan produk berkualitas, mendapatkan penawaran terbaik, atau melacak pesanan Anda.');
 
         if ($this->password) {
-            $mail->line('Akun Anda telah dibuat oleh admin/kasir. Berikut password Anda: ' . $this->password);
+            $mail->line('<strong>Email:</strong> ' . $notifiable->email)
+                ->line('<strong>Password:</strong> ' . $this->password)
+                ->line('Akun Anda telah dibuat oleh admin/kasir. Silakan login dan ubah password Anda setelah berhasil masuk.');
         }
 
         $mail->line('Jika Anda memiliki pertanyaan atau membutuhkan bantuan, jangan ragu untuk menghubungi tim dukungan pelanggan kami di admin@bulky.id.')
@@ -52,6 +54,6 @@ class RegisteredNotification extends Notification implements ShouldQueue
 
     public function toWhatsApp($notifiable)
     {
-        return "Selamat datang di Bulky.id! Akun Anda telah dibuat.\nEmail: {$notifiable->email}\nPassword: {$this->password}\nSilakan login dan ubah password Anda setelah berhasil masuk.";
+        return "Selamat datang di Bulky.id! Akun Anda telah dibuat.\n*Email:* {$notifiable->email}\n*Password:* {$this->password}\nSilakan login dan ubah password Anda setelah berhasil masuk.";
     }
 }
