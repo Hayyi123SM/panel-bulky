@@ -3,7 +3,7 @@
 
 namespace App\Http\Resources;
 
-
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
@@ -38,8 +38,9 @@ class ProductResource extends JsonResource
             'description_trans' => $this->getTranslations('description_trans'),
             'brands' => ProductBrandResource::collection($this->whenLoaded('brands')),
             'sold_out' => $this->sold_out,
-
-            'warehouse' => new WarehouseResource($this->whenLoaded('warehouse')),
+            'warehouse' => $this->warehouse // jika tidak ada warehouse, ambil warehouse pertama sebagai default
+                ? new WarehouseResource($this->warehouse)
+                : new WarehouseResource(Warehouse::query()->first()),
             'category' => new ProductCategoryResource($this->whenLoaded('productCategory')),
             'condition' => new ProductConditionResource($this->whenLoaded('productCondition')),
             'status' => new ProductStatusResource($this->whenLoaded('productStatus')),
