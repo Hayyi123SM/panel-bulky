@@ -40,8 +40,8 @@ class RegisteredNotification extends Notification implements ShouldQueue
             ->line('Dengan bulky.id, Anda akan mendapatkan akses ke berbagai fitur menarik yang akan membantu Anda menemukan produk berkualitas, mendapatkan penawaran terbaik, atau melacak pesanan Anda.');
 
         if ($this->password) {
-            $mail->line('<strong>Email:</strong> ' . $notifiable->email)
-                ->line('<strong>Password:</strong> ' . $this->password)
+            $mail->line("**Email:** {$notifiable->email}")
+                ->line("**Password:** {$this->password}")
                 ->line('Akun Anda telah dibuat oleh admin/kasir. Silakan login dan ubah password Anda setelah berhasil masuk.');
         }
 
