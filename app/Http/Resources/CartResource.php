@@ -37,6 +37,7 @@ class CartResource extends JsonResource
         $grouped = $filteredItems->groupBy(fn($item) => $item->product?->packaging_type ?? 'unknown');
         $packaging_types = [
             'palet' => [],
+            'truck_load' => [],
             'container' => [],
         ];
         foreach ($grouped as $type => $items) {
