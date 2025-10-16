@@ -84,6 +84,7 @@ class ProductResource extends Resource
                             ->label('Tipe Pengemasan')
                             ->options([
                                 'palet' => 'Palet',
+                                'truck_load' => 'Truck Load',
                                 'container' => 'Kontainer',
                             ])
                             ->required(),

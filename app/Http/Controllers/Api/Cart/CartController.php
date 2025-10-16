@@ -104,12 +104,12 @@ class CartController extends Controller
                         $item->save();
                     });
 
-                // Logic khusus container: hanya satu yang bisa terceklis
-                if ($packagingType === 'container') {
+                // Logic khusus container/truck_load: hanya satu yang bisa terceklis
+                if (in_array($packagingType, ['container', 'truck_load'])) {
                     $cart->items()
                         ->where('is_selected', true)
                         ->where('id', '!=', $cartItem->id)
-                        ->whereHas('product', fn($q) => $q->where('packaging_type', 'container'))
+                        ->whereHas('product', fn($q) => $q->where('packaging_type', $packagingType))
                         ->get()
                         ->each(function ($item) {
                             $item->is_selected = false;
@@ -239,7 +239,7 @@ class CartController extends Controller
                 $allSelected = $paletItems->every(function ($item) {
                     return $item->is_selected;
                 });
-                // Select all palet, unselect all container
+                // Select all palet, unselect all container & truck_load
                 foreach ($cart->items as $item) {
                     if ($item->product && $item->product->packaging_type === 'palet') {
                         $item->is_selected = !$allSelected;
@@ -248,11 +248,11 @@ class CartController extends Controller
                     }
                     $item->save();
                 }
-            } elseif ($type === 'container') {
-                // Select all for container is not allowed
+            } elseif (in_array($type, ['container', 'truck_load'])) {
+                // Select all for container/truck_load is not allowed
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak bisa checklist semua produk dengan type kontainer. Hanya satu item kontainer yang bisa dipilih.'
+                    'message' => 'Tidak bisa checklist semua produk dengan type ' . str_replace('_', ' ', $type) + '. Hanya satu item ' + str_replace('_', ' ', $type) + ' yang bisa dipilih.'
                 ], 422);
             }
         } elseif (isset($data['cart_item_id']) && isset($data['is_selected'])) {
@@ -261,7 +261,7 @@ class CartController extends Controller
                 ->whereHas('cart', fn($q) => $q->where('user_id', $user->id))
                 ->firstOrFail();
             $packagingType = $cartItem->product?->packaging_type;
-            if ($packagingType === 'container' && $data['is_selected']) {
+            if (in_array($packagingType, ['container', 'truck_load']) && $data['is_selected']) {
                 // Unselect all palet
                 foreach ($cart->items as $item) {
                     if ($item->product && $item->product->packaging_type === 'palet') {
@@ -269,20 +269,20 @@ class CartController extends Controller
                         $item->save();
                     }
                 }
-                // Unselect all other container items except the one being selected
+                // Unselect all other container/truck_load items except the one being selected
                 foreach ($cart->items as $item) {
-                    if ($item->product && $item->product->packaging_type === 'container' && $item->id != $cartItem->id) {
+                    if ($item->product && $item->product->packaging_type === $packagingType && $item->id != $cartItem->id) {
                         $item->is_selected = false;
                         $item->save();
                     }
                 }
-                // Select only the chosen container item
+                // Select only the chosen container/truck_load item
                 $cartItem->is_selected = true;
                 $cartItem->save();
             } elseif ($packagingType === 'palet') {
-                // Unselect all container
+                // Unselect all container & truck_load
                 foreach ($cart->items as $item) {
-                    if ($item->product && $item->product->packaging_type === 'container') {
+                    if ($item->product && in_array($item->product->packaging_type, ['container', 'truck_load'])) {
                         $item->is_selected = false;
                         $item->save();
                     }
@@ -435,7 +435,7 @@ class CartController extends Controller
         if ($packagingTypes->count() > 1) {
             return response()->json([
                 'status' => 'mixed_packaging_type',
-                'message' => 'Pengiriman tidak bisa digabung antara produk palet dan kontainer. Silakan pisahkan transaksi.'
+                'message' => 'Pengiriman tidak bisa digabung dengan tipe produk yang berbeda. Silakan pisahkan transaksi.'
             ], 422);
         }
         $packagingType = $packagingTypes->first();
@@ -530,21 +530,38 @@ class CartController extends Controller
             }
         }
 
-        // Logic kontainer
-        if ($packagingType === 'container') {
+        // Logic kontainer & truck_load
+        if (in_array($packagingType, ['container', 'truck_load'])) {
             if ($selectedCount > 1) {
                 return response()->json([
                     'status' => 'mixed_packaging_type',
-                    'message' => 'Pesanan kontainer hanya bisa 1 item per transaksi. Untuk lebih dari satu, lakukan transaksi terpisah.'
+                    'message' => 'Pesanan ' . str_replace('_', ' ', $packagingType) . ' hanya bisa 1 item per transaksi. Untuk lebih dari satu, lakukan transaksi terpisah.'
                 ], 422);
             }
             if ($isJabodetabek) {
                 return response()->json([
                     'status' => 'unavailable_address',
-                    'message' => 'Pengiriman kontainer hanya tersedia untuk alamat di luar Jabodetabek.'
+                    'message' => 'Pengiriman ' . str_replace('_', ' ', $packagingType) . ' hanya tersedia untuk alamat di luar Jabodetabek.'
                 ], 422);
             }
             $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
+            $transportType = $location['transport_type'] ?? null;
+            $loadType = $location['load_type'] ?? null;
+
+            // Validasi kombinasi transport_type & load_type
+            if ($packagingType === 'container' && !($transportType == 1 && $loadType == 1)) {
+                return response()->json([
+                    'status' => 'invalid_packaging_type',
+                    'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk container.'
+                ], 422);
+            }
+            if ($packagingType === 'truck_load' && !($transportType == 3 && $loadType == 4)) {
+                return response()->json([
+                    'status' => 'invalid_packaging_type',
+                    'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk truck load.'
+                ], 422);
+            }
+
             $city = preg_replace([
                 '/^(Kota|Kabupaten)\s+/i',
                 '/\s+(City|Regency)$/i'
@@ -556,15 +573,15 @@ class CartController extends Controller
             if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
                 return response()->json([
                     'status' => 'unavailable_address',
-                    'message' => 'Kota tujuan tidak tersedia untuk pengiriman kontainer. Silakan pilih kota lain.'
+                    'message' => 'Kota tujuan tidak tersedia untuk pengiriman ' . str_replace('_', ' ', $packagingType) . '. Silakan pilih kota lain.'
                 ], 422);
             }
             $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
                 "origin_city" => 208,
                 "destination_city" => $destination['data'][0]['item_id'],
                 "destination_subdistrict" => 0,
-                "transport_type" => $location['transport_type'] ?? 1,
-                "load_type" => $location['load_type'] ?? 1,
+                "transport_type" => $transportType,
+                "load_type" => $loadType,
                 "service_type" => 1
             ]);
             if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
@@ -748,7 +765,8 @@ class CartController extends Controller
             // Validasi phone_number unik setelah dinormalisasi
             if (User::where('phone_number', $normalizedPhone)->exists()) {
                 return response()->json([
-                    'phone_number' => ['Nomor telepon sudah terdaftar.']
+                    'status' => 'phone_number_exists',
+                    'message' => 'Nomor telepon sudah terdaftar di Bulky.',
                 ], 422);
             }
             $username = 'user_' . substr(md5($data['email'] . $normalizedPhone), 0, 8);
