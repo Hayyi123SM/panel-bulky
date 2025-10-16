@@ -802,7 +802,6 @@ class CartController extends Controller
         }
 
         $product = Product::whereName('Palet ' . $data['code_document_sale'])
-            ->whereIsActive(0)
             ->whereSoldOut(1)
             ->first();
 
