@@ -9,7 +9,7 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('products', function (Blueprint $table) {
-            DB::statement("ALTER TABLE products MODIFY packaging_type ENUM('palet', 'container', 'truck_load') NOT NULL");
+            DB::statement("ALTER TABLE products MODIFY packaging_type ENUM('palet', 'truck_load', 'container') NOT NULL");
         });
     }
 

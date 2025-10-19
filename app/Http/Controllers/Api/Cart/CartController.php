@@ -252,7 +252,7 @@ class CartController extends Controller
                 // Select all for container/truck_load is not allowed
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak bisa checklist semua produk dengan type ' . str_replace('_', ' ', $type) + '. Hanya satu item ' + str_replace('_', ' ', $type) + ' yang bisa dipilih.'
+                    'message' => 'Tidak bisa checklist semua produk dengan type ' . str_replace('_', ' ', $type) . '. Hanya satu item ' . str_replace('_', ' ', $type) . ' yang bisa dipilih.'
                 ], 422);
             }
         } elseif (isset($data['cart_item_id']) && isset($data['is_selected'])) {
@@ -269,9 +269,9 @@ class CartController extends Controller
                         $item->save();
                     }
                 }
-                // Unselect all other container/truck_load items except the one being selected
+                // Unselect all other container/truck_load items (both types) except the one being selected
                 foreach ($cart->items as $item) {
-                    if ($item->product && $item->product->packaging_type === $packagingType && $item->id != $cartItem->id) {
+                    if ($item->product && in_array($item->product->packaging_type, ['container', 'truck_load']) && $item->id != $cartItem->id) {
                         $item->is_selected = false;
                         $item->save();
                     }
