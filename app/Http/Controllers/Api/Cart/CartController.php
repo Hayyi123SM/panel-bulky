@@ -551,13 +551,13 @@ class CartController extends Controller
             // Validasi kombinasi transport_type & load_type
             if ($packagingType === 'container' && !($transportType == 1 && $loadType == 1)) {
                 return response()->json([
-                    'status' => 'invalid_packaging_type',
+                    'status' => 'unavailable_address',
                     'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk container.'
                 ], 422);
             }
             if ($packagingType === 'truck_load' && !($transportType == 3 && $loadType == 4)) {
                 return response()->json([
-                    'status' => 'invalid_packaging_type',
+                    'status' => 'unavailable_address',
                     'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk truck load.'
                 ], 422);
             }
