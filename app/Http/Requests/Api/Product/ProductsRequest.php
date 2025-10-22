@@ -20,7 +20,7 @@ class ProductsRequest extends FormRequest
             'price_min' => 'nullable|integer|min:0',
             'price_max' => 'nullable|integer|min:10000',
             'random' => 'nullable|boolean',
-            'packaging_type' => 'nullable|in:palet,container',
+            'packaging_type' => 'nullable|in:palet,truck_load,container',
         ];
     }
 
