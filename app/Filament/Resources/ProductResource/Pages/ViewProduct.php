@@ -43,7 +43,24 @@ class ViewProduct extends ViewRecord
                         TextEntry::make('total_quantity'),
                         TextEntry::make('packaging_type')
                             ->label('Tipe Pengemasan')
-                            ->formatStateUsing(fn($state) => $state === 'palet' ? 'Palet' : ($state === 'container' ? 'Kontainer' : '-')),
+                            ->formatStateUsing(fn($state) => match($state) {
+                                'palet' => 'Palet',
+                                'container' => 'Kontainer',
+                                'truck_load' => 'Truck Load',
+                                default => '-',
+                            }),
+                        TextEntry::make('truck_load_vehicle_type_id')
+                            ->label('Jenis Kendaraan Truck Load')
+                            ->visible(fn($record) => $record->packaging_type === 'truck_load')
+                            ->formatStateUsing(function ($state) {
+                                $options = [
+                                    2704 => 'Fuso Box Liquid8 (8 Tons)',
+                                    2726 => 'Fuso Pickup Liquid8 (8 Ton)',
+                                    2727 => 'Fuso Box Liquid8 (10 Ton)',
+                                    2728 => 'Fuso Pickup Liquid8 (10 Ton)',
+                                ];
+                                return $options[$state] ?? $state;
+                            }),
                     ]),
                 Section::make('Additional Product Details')
                     ->schema([
