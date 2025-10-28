@@ -36,6 +36,16 @@ class GeoRegionService
         'kota tangerang selatan',
         'south tangerang',
         'south tangerang city',
+
+        //tambahan bandung walau bukan jabodetabek
+        'bandung',
+        'kota bandung',
+        'bandung city',
+        'kabupaten bandung',
+        'bandung regency',
+        'bandung barat', // Kabupaten Bandung Barat
+        'kabupaten bandung barat',
+        'west bandung regency',
     ];
 
     protected array $jabodetabekProvinces = [
