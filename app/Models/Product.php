@@ -33,6 +33,7 @@ class Product extends Model
         'price_before_discount',
         'total_quantity',
         'packaging_type',
+        'truck_load_vehicle_type_id',
         'pdf_file',
         'description',
         'description_trans',

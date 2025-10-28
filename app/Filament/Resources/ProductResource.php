@@ -87,6 +87,7 @@ class ProductResource extends Resource
                                 'truck_load' => 'Truck Load',
                                 'container' => 'Kontainer',
                             ])
+                            ->reactive()
                             ->required(),
                     ]),
 
@@ -96,6 +97,18 @@ class ProductResource extends Resource
                             ->label('PDF File')
                             ->acceptedFileTypes(['application/pdf'])
                             ->maxSize(150),
+                        Forms\Components\Select::make('truck_load_vehicle_type_id')
+                            ->label('Jenis Kendaraan Truck Load')
+                            ->options([
+                                2704 => 'Fuso Box Liquid8 (8 Tons)',
+                                2726 => 'Fuso Pickup Liquid8 (8 Ton)',
+                                2727 => 'Fuso Box Liquid8 (10 Ton)',
+                                2728 => 'Fuso Pickup Liquid8 (10 Ton)',
+                            ])
+                            ->native(false)
+                            ->searchable()
+                            ->visible(fn($get) => $get('packaging_type') === 'truck_load')
+                            ->required(fn($get) => $get('packaging_type') === 'truck_load'),
                         Forms\Components\RichEditor::make('description_trans')
                             ->label('Deskripsi')
                             ->required()
