@@ -16,6 +16,7 @@ class OrderShippingResource extends JsonResource
             'shipping_cost' => 'Rp ' . number_format($this->shipping_cost, 0, ',', '.'),
             'insurance_amount' => 'Rp ' . number_format($this->insurance_amount, 0, ',', '.'),
             'insurance_percentage' => $this->insurance_percentage,
+            'shipping_provider' => $this->shipping_provider,
             'vehicle_type' => $this->vehicle_type,
             //            'booking_id' => $this->booking_id,
             //            'extra_helper_id' => $this->extra_helper_id,

@@ -74,7 +74,12 @@ class CartResource extends JsonResource
             'shipping_cost' => [
                 'numeric' => $shipping_cost,
                 'formatted' => 'Rp ' . number_format($shipping_cost, 0, ',', '.'),
-                'insurance_amount' => $insurance_amount ?? 0,
+                // 'insurance_amount' => $insurance_amount ?? 0,
+            ],
+            'shipping_insurance' => [
+                'show' => $this->shipping_provider === "Forwarder",
+                'numeric' => $insurance_amount ?? 0,
+                'formatted' => 'Rp ' . number_format($insurance_amount ?? 0, 0, ',', '.'),
             ],
             'payment_method' => $this->payment_method,
             'items_count' => $this->items_count,

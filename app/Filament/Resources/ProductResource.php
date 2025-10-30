@@ -100,6 +100,7 @@ class ProductResource extends Resource
                         Forms\Components\Select::make('truck_load_vehicle_type_id')
                             ->label('Jenis Kendaraan Truck Load')
                             ->options([
+                                2725 => 'CDD Long Liquid8',
                                 2704 => 'Fuso Box Liquid8 (8 Tons)',
                                 2726 => 'Fuso Pickup Liquid8 (8 Ton)',
                                 2727 => 'Fuso Box Liquid8 (10 Ton)',
