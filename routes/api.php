@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Page\PageController;
 use App\Http\Controllers\Api\Product\FilterController;
 use App\Http\Controllers\Api\Product\ProductController;
+use App\Http\Controllers\Api\Disclaimer\DisclaimerController;
 use App\Http\Controllers\Api\Testimony\TestimonyController;
 use App\Http\Controllers\Api\User\AddressController;
 use App\Http\Controllers\Api\User\BankController;
@@ -133,6 +134,7 @@ Route::prefix('orders')->middleware('auth:sanctum')->group(function () {
     Route::post('review/{order}', [OrderController::class, 'review'])->name('orders.review');
     Route::put('complete/{order}', [OrderController::class, 'complete'])->name('orders.complete');
     Route::get('tracking/{order}', [OrderController::class, 'tracking'])->name('orders.tracking');
+    Route::get('disclaimers/active', [DisclaimerController::class, 'active']);
 
     Route::prefix('invoice')->group(function () {
         Route::get('get-payment-methods', [InvoiceController::class, 'getPaymentMethod'])->name('orders.invoice.payment-method');
