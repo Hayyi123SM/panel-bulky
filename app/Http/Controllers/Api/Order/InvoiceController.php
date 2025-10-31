@@ -9,14 +9,17 @@ use App\Http\Requests\Api\Order\Invoice\SetAmountRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\PaymentMethodCollection;
 use App\Http\Resources\PaymentMethodGroupResource;
+use App\Models\Disclaimer;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\PaymentMethod;
 use App\Models\PaymentMethodGroup;
+use App\Models\UserConsent;
 use Auth;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Midtrans\Config;
 use Midtrans\Snap;
@@ -148,6 +151,27 @@ class InvoiceController extends Controller
             'success_redirect_url' => $redirectUrl,
             'payment_methods' => [$paymentMethod->code],
         ]);
+
+        // Create UserConsent record.
+        // Prefer storing consent atomically with the order so we don't have orphan orders without consent record.
+        try {
+            $disclaimer = Disclaimer::where('is_active', true)->latest('updated_at')->first();
+
+            UserConsent::create([
+                'user_id' => $user->id,
+                'order_id' => $orderId,
+                'disclaimer_id' => $disclaimer?->id,
+                'consent_type' => 'purchase_disclaimer',
+                'version' => $request->input('disclaimer_version') ?? ($disclaimer?->slug ?? $disclaimer?->updated_at?->toDateTimeString()),
+                'ip_address' => request()?->ip(),
+                'user_agent' => request()?->header('User-Agent'),
+                'accepted_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // Log but do not abort the whole transaction — consent is important but should not block order creation in unexpected errors.
+            // However, you may prefer to re-throw to force strict compliance.
+            Log::warning('Failed to create UserConsent for order ' . $orderId . ': ' . $e->getMessage());
+        }
 
         try {
             $result = $apiInstance->createInvoice($apiRequest);

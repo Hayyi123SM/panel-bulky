@@ -21,12 +21,10 @@ use App\Http\Resources\UserResource;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
-use App\Models\Disclaimer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Models\UserConsent;
 use App\Notifications\RegisteredNotification;
 use App\Services\Deliveree\Deliveree;
 use App\Services\Forwarder\ApiRequest;
@@ -780,27 +778,6 @@ class CartController extends Controller
 
             $this->createInvoices($order, $request);
             $this->removeItemAfterOrder($cart);
-
-            // Create UserConsent record.
-            // Prefer storing consent atomically with the order so we don't have orphan orders without consent record.
-            try {
-                $disclaimer = Disclaimer::where('is_active', true)->latest('updated_at')->first();
-
-                UserConsent::create([
-                    'user_id' => $user->id,
-                    'order_id' => $order->id,
-                    'disclaimer_id' => $disclaimer?->id,
-                    'consent_type' => 'purchase_disclaimer',
-                    'version' => $request->input('disclaimer_version') ?? ($disclaimer?->slug ?? $disclaimer?->updated_at?->toDateTimeString()),
-                    'ip_address' => request()?->ip(),
-                    'user_agent' => request()?->header('User-Agent'),
-                    'accepted_at' => now(),
-                ]);
-            } catch (\Throwable $e) {
-                // Log but do not abort the whole transaction — consent is important but should not block order creation in unexpected errors.
-                // However, you may prefer to re-throw to force strict compliance.
-                Log::warning('Failed to create UserConsent for order ' . $order->id . ': ' . $e->getMessage());
-            }
 
             return $order;
         });
