@@ -154,55 +154,87 @@ class CartController extends Controller
      * Get Cart
      *
      * Retrieves the cart for the authenticated user.
+     * If cart doesn't exist, returns empty cart info without persisting to database.
      *
      * @return CartResource The resource representation of the user's cart.
-     * @throws ModelNotFoundException if the cart is not found.
      */
     public function getCart(Request $request)
     {
         $user_id = $request->user()->id;
-        $cart = Cart::withCount('items')->firstOrCreate(
-            ['user_id' => $user_id],
-            [
+
+        // Get existing cart or return empty cart object (don't persist empty cart)
+        $cart = Cart::where('user_id', $user_id)
+            ->with(['items' => function ($query) {
+                $query->with(['product' => function ($pq) {
+                    $pq->withTrashed();
+                }])->withTrashed();
+            }])
+            ->withCount('items')
+            ->first();
+
+        // If cart doesn't exist, return empty cart without creating database record
+        if (!$cart) {
+            $emptyCart = new Cart([
+                'user_id' => $user_id,
                 'total_price' => 0,
                 'payment_method' => OrderPaymentTypeEnum::SinglePayment,
-            ]
-        );
+            ]);
+            $emptyCart->items_count = 0;
+            return new CartResource($emptyCart);
+        }
 
-        // Check and remove soft-deleted products from the cart
-        $cart->items()->withTrashed()->each(function (CartItem $item) {
-            if ($item->product()->withTrashed()->first()?->trashed()) {
+        // Clean up soft-deleted products from cart and flag unavailable items
+        $hasDeletedItems = false;
+        foreach ($cart->items as $item) {
+            // Remove soft-deleted products
+            if ($item->product?->trashed()) {
                 $item->delete();
+                $hasDeletedItems = true;
+                continue;
             }
-        });
 
+            // Flag items with inactive or sold out products (don't remove, let FE handle display)
+            if ($item->product) {
+                $item->is_available = $item->product->is_active && !$item->product->sold_out;
+                $item->availability_status = match (true) {
+                    !$item->product->is_active => 'inactive',
+                    $item->product->sold_out => 'sold_out',
+                    default => 'available'
+                };
+                $item->status_message = match ($item->availability_status) {
+                    'inactive' => 'Produk tidak tersedia',
+                    'sold_out' => 'Produk sudah terjual',
+                    default => null
+                };
+            }
+        }
+
+        // Refresh cart items if any were deleted
+        if ($hasDeletedItems) {
+            $cart->load('items.product');
+            $cart->loadCount('items');
+        }
+
+        // Reset discounts when entering checkout mode
         if ($request->filled('mode') && $request->input('mode') == 'checkout') {
             $cart->update([
                 'coupon_code' => null,
                 'discount_amount' => 0,
             ]);
             $cart->items()->update(['discount_amount' => 0]);
+
+            // Refresh items after discount reset
+            $cart->refresh();
+            $cart->load('items.product');
         }
 
+        // Recalculate cart total price
         $this->updateTotalPrice($cart);
 
-        // Group items by packaging_type for flexible response
-        $items = $cart->items()->with('product')->get();
-        $grouped = $items->groupBy(function ($item) {
-            return $item->product?->packaging_type ?? 'unknown';
-        });
+        // Reload to get fresh data after updateTotalPrice
+        $cart->load('items.product');
 
-        // Prepare flexible structure for resource
-        $packaging_types = [];
-        foreach ($grouped as $type => $items) {
-            $packaging_types[] = [
-                'type' => $type,
-                'items' => $items->values(),
-            ];
-        }
-
-        // Pass grouped items as additional data to resource
-        return (new CartResource($cart));
+        return new CartResource($cart);
     }
 
     /**
@@ -225,28 +257,60 @@ class CartController extends Controller
     {
         $data = $request->validated();
         $user = $request->user();
-        $cart = Cart::whereUserId($user->id)->firstOrFail();
+        $cart = Cart::whereUserId($user->id)->with('items.product')->firstOrFail();
 
         // Bulk select by packaging_type
         if (isset($data['select_all_type'])) {
             $type = $data['select_all_type'];
             if ($type === 'palet') {
-                // Ambil semua item palet
+                // Ambil semua item palet yang available
                 $paletItems = $cart->items->filter(function ($item) {
-                    return $item->product && $item->product->packaging_type === 'palet';
+                    return $item->product
+                        && $item->product->packaging_type === 'palet'
+                        && $item->product->is_active
+                        && !$item->product->sold_out;
                 });
+
+                // Check if ada palet items yang unavailable
+                $unavailablePaletCount = $cart->items->filter(function ($item) {
+                    return $item->product
+                        && $item->product->packaging_type === 'palet'
+                        && (!$item->product->is_active || $item->product->sold_out);
+                })->count();
+
+                if ($paletItems->isEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tidak ada produk palet yang tersedia untuk dipilih.'
+                    ], 422);
+                }
 
                 $allSelected = $paletItems->every(function ($item) {
                     return $item->is_selected;
                 });
-                // Select all palet, unselect all container & truck_load
+
+                // Select all available palet, unselect all container & truck_load
                 foreach ($cart->items as $item) {
                     if ($item->product && $item->product->packaging_type === 'palet') {
-                        $item->is_selected = !$allSelected;
+                        // Only select if product is available
+                        if ($item->product->is_active && !$item->product->sold_out) {
+                            $item->is_selected = !$allSelected;
+                        } else {
+                            $item->is_selected = false;
+                        }
                     } else {
                         $item->is_selected = false;
                     }
                     $item->save();
+                }
+
+                // Notify if some items were skipped
+                if ($unavailablePaletCount > 0 && !$allSelected) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => "{$unavailablePaletCount} produk tidak tersedia atau sudah terjual, dilewati dari pemilihan.",
+                        'cart' => new CartResource($cart->fresh()->load('items.product'))
+                    ]);
                 }
             } elseif (in_array($type, ['container', 'truck_load'])) {
                 // Select all for container/truck_load is not allowed
@@ -259,7 +323,24 @@ class CartController extends Controller
             // Single item select/unselect
             $cartItem = CartItem::where('id', $data['cart_item_id'])
                 ->whereHas('cart', fn($q) => $q->where('user_id', $user->id))
+                ->with('product')
                 ->firstOrFail();
+
+            // Validate product availability before selecting
+            if ($data['is_selected'] && $cartItem->product) {
+                if (!$cartItem->product->is_active) {
+                    throw ValidationException::withMessages([
+                        'cart_item' => "Produk '{$cartItem->product->name}' sudah tidak tersedia. Silakan hapus dari keranjang."
+                    ]);
+                }
+
+                if ($cartItem->product->sold_out) {
+                    throw ValidationException::withMessages([
+                        'cart_item' => "Produk '{$cartItem->product->name}' sudah terjual. Silakan hapus dari keranjang."
+                    ]);
+                }
+            }
+
             $packagingType = $cartItem->product?->packaging_type;
             if (in_array($packagingType, ['container', 'truck_load']) && $data['is_selected']) {
                 // Unselect all palet
@@ -447,7 +528,7 @@ class CartController extends Controller
             if (!$isJabodetabek) {
                 return response()->json([
                     'status' => 'unavailable_address',
-                    'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek.'
+                    'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek & Bandung'
                 ], 422);
             }
             // ...existing code Deliveree
@@ -600,12 +681,12 @@ class CartController extends Controller
                 $transportType = $location['transport_type'] ?? null;
                 $loadType = $location['load_type'] ?? null;
 
-                if ($packagingType === 'container' && !($transportType == 1 && $loadType == 1)) {
-                    return response()->json([
-                        'status' => 'unavailable_address',
-                        'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk container.'
-                    ], 422);
-                }
+                // if ($packagingType === 'container' && !($transportType == 1 && $loadType == 1)) {
+                //     return response()->json([
+                //         'status' => 'unavailable_address',
+                //         'message' => 'Pengiriman dengan alamat ini tidak dapat dilakukan untuk tipe produk container.'
+                //     ], 422);
+                // }
                 if ($packagingType === 'truck_load' && !($transportType == 3 && $loadType == 4)) {
                     return response()->json([
                         'status' => 'unavailable_address',
@@ -696,12 +777,76 @@ class CartController extends Controller
     public function placeOrder(PlaceOrderRequest $request)
     {
         $user = $request->user();
-        $cart = Cart::whereUserId($user->id)->withCount('items')->firstOrFail();
+        $cart = Cart::whereUserId($user->id)
+            ->with(['items' => function ($query) {
+                $query->where('is_selected', true)->with('product');
+            }])
+            ->withCount(['items', 'items as selected_items_count' => function ($query) {
+                $query->where('is_selected', true);
+            }])
+            ->firstOrFail();
 
+        // Validate cart is not empty
+        if ($cart->items_count == 0) {
+            throw ValidationException::withMessages([
+                'cart' => 'Keranjang Anda kosong. Silakan tambahkan produk terlebih dahulu.'
+            ]);
+        }
+
+        // Validate at least one item is selected
+        if ($cart->selected_items_count == 0) {
+            throw ValidationException::withMessages([
+                'cart' => 'Tidak ada produk yang dipilih. Silakan pilih minimal satu produk.'
+            ]);
+        }
+
+        // Validate cart total price
+        if ($cart->total_price <= 0) {
+            throw ValidationException::withMessages([
+                'cart' => 'Total harga keranjang tidak valid. Silakan periksa kembali produk Anda.'
+            ]);
+        }
+
+        // Validate address for courier pickup
         if ($cart->address_id == null && $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
             throw ValidationException::withMessages([
                 'address' => 'Anda belum mengatur alamat pengiriman.'
             ]);
+        }
+
+        // Validate selected items have valid products
+        foreach ($cart->items as $item) {
+            if (!$item->product || $item->product->trashed()) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Beberapa produk dalam keranjang Anda tidak tersedia lagi. Silakan refresh halaman.'
+                ]);
+            }
+
+            // Validate product is active (not disabled by admin)
+            if (!$item->product->is_active) {
+                throw ValidationException::withMessages([
+                    'cart' => "Produk '{$item->product->name}' sudah tidak tersedia. Silakan hapus dari keranjang dan pilih produk lain."
+                ]);
+            }
+
+            // Validate product is not sold out (race condition prevention)
+            if ($item->product->sold_out) {
+                throw ValidationException::withMessages([
+                    'cart' => "Produk '{$item->product->name}' sudah terjual. Silakan hapus dari keranjang dan pilih produk lain."
+                ]);
+            }
+
+            if ($item->quantity <= 0) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Jumlah produk tidak valid. Silakan periksa kembali keranjang Anda.'
+                ]);
+            }
+
+            if ($item->price <= 0) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Harga produk tidak valid. Silakan hubungi customer service.'
+                ]);
+            }
         }
 
         $order = DB::transaction(function () use ($cart, $request, $user) {
@@ -1185,16 +1330,32 @@ class CartController extends Controller
     }
 
     /**
-     * Marks the given product as sold out.
-     *
+     * Marks the given product as sold out with optimistic locking.
+     * Uses WHERE condition to prevent double-checkout race condition.
+     * 
      * @param Product $product The product instance to be updated
      * @return void
+     * @throws \Exception If product is already sold by another user
      */
     private function setProductToSold(Product $product)
     {
-        //        if(config('app.env') === 'production') {
-        //        }
-        $product->sold_out = true;
-        $product->save();
+        // Optimistic locking: only update if product is still available
+        $affected = Product::where('id', $product->id)
+            ->where('sold_out', false)
+            ->where('is_active', true)
+            ->update([
+                'sold_out' => true,
+                'updated_at' => now(),
+            ]);
+
+        // If no rows were affected, product was already sold by another user
+        if ($affected === 0) {
+            throw new \Exception("Produk '{$product->name}' sudah terjual oleh user lain. Transaksi dibatalkan.");
+        }
+
+        Log::info("Product marked as sold", [
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+        ]);
     }
 }

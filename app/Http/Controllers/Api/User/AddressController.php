@@ -30,7 +30,7 @@ class AddressController extends Controller
     public function getAddresses()
     {
         $user = request()->user();
-        $addresses = $user->addresses()->orderByDesc('is_primary')->paginate();
+        $addresses = $user->addresses()->orderByDesc('is_primary')->get();
         return AddressResource::collection($addresses);
     }
 

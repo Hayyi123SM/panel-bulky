@@ -27,4 +27,19 @@ class UserConsent extends Model
     protected $casts = [
         'accepted_at' => 'datetime',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function disclaimer()
+    {
+        return $this->belongsTo(Disclaimer::class);
+    }
 }

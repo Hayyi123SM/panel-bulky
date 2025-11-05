@@ -64,46 +64,46 @@ class CouponResource extends Resource
                     ->required()
                     ->autocomplete(false)
                     ->numeric(fn(Forms\Get $get) => $get('discount_type') == CouponDiscountTypeEnum::Percent)
-                    ->suffix(function (Forms\Get $get, $record){
-                        if(is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Percent){
+                    ->suffix(function (Forms\Get $get, $record) {
+                        if (is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Percent) {
                                 return '%';
                             }
                         }
 
-                        if(!is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Percent->value){
+                        if (!is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Percent->value) {
                                 return '%';
                             }
                         }
 
                         return null;
                     }, true)
-                    ->prefix(function (Forms\Get $get, $record){
-                        if (is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Amount){
+                    ->prefix(function (Forms\Get $get, $record) {
+                        if (is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Amount) {
                                 return 'Rp ';
                             }
                         }
 
-                        if (!is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Amount->value){
+                        if (!is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Amount->value) {
                                 return 'Rp ';
                             }
                         }
                         return null;
                     }, true)
-                    ->mask(function (Forms\Get $get, $record){
-                        if(is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Amount){
+                    ->mask(function (Forms\Get $get, $record) {
+                        if (is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Amount) {
                                 return RawJs::make(<<<'JS'
                                     $money($input, ',', '.', 0)
                                 JS);
                             }
                         }
 
-                        if(!is_null($record)){
-                            if($get('discount_type') === CouponDiscountTypeEnum::Amount->value){
+                        if (!is_null($record)) {
+                            if ($get('discount_type') === CouponDiscountTypeEnum::Amount->value) {
                                 return RawJs::make(<<<'JS'
                                     $money($input, ',', '.', 0)
                                 JS);
@@ -143,11 +143,11 @@ class CouponResource extends Resource
                 Tables\Columns\TextColumn::make('discount_value')
                     ->searchable()
                     ->numeric()
-                    ->formatStateUsing(function (int $state, Coupon $record){
-                        if($record->discount_type === CouponDiscountTypeEnum::Percent){
-                            return $state.'%';
+                    ->formatStateUsing(function (int $state, Coupon $record) {
+                        if ($record->discount_type === CouponDiscountTypeEnum::Percent) {
+                            return $state . '%';
                         } else {
-                            return 'Rp '. number_format($state, 0, ',', '.');
+                            return 'Rp ' . number_format($state, 0, ',', '.');
                         }
                     })
                     ->alignRight(),

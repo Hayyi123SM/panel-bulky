@@ -74,6 +74,13 @@ class SendPackageAction extends Action
                     $consigneeLocation = $geoService->getLocationFromGoogleMaps($record->latitude, $record->longitude);
                     $requirementProvider = $record->shipping->requirement_provider;
                     $apiForwarder = app(ApiRequest::class);
+                    $packagingType = $record->items->first()->product->packaging_type;
+                    $vehicleId = match ($packagingType) {
+                        'palet' => 7, // CDD Long
+                        'container' => 12, // Wing Box
+                        'truck_load' => 7, // CDD Long
+                        default => 7,
+                    };
 
                     if ($requirementProvider['transport_id'] === 1) { // Sea Freight
                         $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', [
@@ -156,7 +163,7 @@ class SendPackageAction extends Action
                             "priceid" => 1, // Mandatory [Input -> 1]
                             "pickuptimetype" => "SCHEDULE", // Mandatory [Input -> SCHEDULE]
                             "pickuptimeon" => "", // Optional
-                            "vehicleid" => "7", // Mandatory [Ambil dari API Tariff -> Vehicle Type = 2]
+                            "vehicleid" => $vehicleId, // Mandatory [Ambil dari API Tariff -> Vehicle Type = 2]
                             "vehicleqty" => 1, // Mandatory
                             "shippername" => "BULKY", // Mandatory [Ambil dari Shipper Name Bulky]
                             "shipperphone" => $warehouse->contact_info, // Mandatory [Ambil dari Shipper Phone Bulky]
