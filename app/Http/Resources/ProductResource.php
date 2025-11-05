@@ -38,6 +38,22 @@ class ProductResource extends JsonResource
             'description_trans' => $this->getTranslations('description_trans'),
             'brands' => ProductBrandResource::collection($this->whenLoaded('brands')),
             'sold_out' => $this->sold_out,
+            'is_active' => $this->is_active,
+
+            // Product availability for FE (consistency with CartItemResource)
+            'is_available' => $this->is_active && !$this->sold_out,
+            'can_add_to_cart' => $this->is_active && !$this->sold_out,
+            'availability_status' => match (true) {
+                !$this->is_active => 'inactive',
+                $this->sold_out => 'sold_out',
+                default => 'available'
+            },
+            'status_message' => match (true) {
+                !$this->is_active => 'Produk tidak tersedia',
+                $this->sold_out => 'Produk sudah terjual',
+                default => null
+            },
+
             'warehouse' => $this->warehouse // jika tidak ada warehouse, ambil warehouse pertama sebagai default
                 ? new WarehouseResource($this->warehouse)
                 : new WarehouseResource(Warehouse::query()->first()),

@@ -13,6 +13,8 @@ class BannerResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'page' => $this->page,
+            'product_type' => $this->product_type,
             'path' => $this->path,
             'full_url' => asset('storage/' . $this->path),
             'order' => $this->order,

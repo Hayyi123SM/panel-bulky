@@ -10,6 +10,23 @@ class CartItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // Check product availability
+        $product = $this->product;
+        $isAvailable = $product && $product->is_active && !$product->sold_out;
+
+        $availabilityStatus = 'available';
+        $statusMessage = null;
+
+        if ($product) {
+            if (!$product->is_active) {
+                $availabilityStatus = 'inactive';
+                $statusMessage = 'Produk tidak tersedia';
+            } elseif ($product->sold_out) {
+                $availabilityStatus = 'sold_out';
+                $statusMessage = 'Produk sudah terjual';
+            }
+        }
+
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
@@ -29,6 +46,12 @@ class CartItemResource extends JsonResource
 
             'has_discount' => $this->discount_amount > 0,
             'is_selected' => $this->is_selected,
+
+            // Product availability status for FE
+            'is_available' => $isAvailable,
+            'can_checkout' => $isAvailable,
+            'availability_status' => $availabilityStatus,
+            'status_message' => $statusMessage,
 
             'cart_id' => $this->cart_id,
             'product_id' => $this->product_id,
