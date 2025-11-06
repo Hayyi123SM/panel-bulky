@@ -95,6 +95,8 @@ Route::prefix('user')->middleware('auth:sanctum')->group(function () {
 
 Route::prefix('banners')->group(function () {
     Route::get('/', [BannerController::class, 'index'])->name('banners.index');
+    Route::get('home', [BannerController::class, 'home'])->name('banners.home');
+    Route::get('product', [BannerController::class, 'product'])->name('banners.product');
 });
 
 Route::prefix('products')->group(function () {
