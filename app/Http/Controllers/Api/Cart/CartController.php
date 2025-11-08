@@ -709,14 +709,6 @@ class CartController extends Controller
                     ], 422);
                 }
 
-                $vehicleTypeId = null;
-                if ($packagingType === 'truck_load') {
-                    $selectedProduct = $selectedItems->first()?->product;
-                    $vehicleTypeId = $selectedProduct?->truck_load_vehicle_type_id;
-                } elseif ($packagingType === 'container') {
-                    $vehicleTypeId = 2728;
-                }
-
                 $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
                     "origin_city" => 208,
                     "destination_city" => $destination['data'][0]['item_id'],
@@ -724,11 +716,11 @@ class CartController extends Controller
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,
+                    "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
                     $cart->shipping_cost = $cost['tariff_idr'];
-                    $cart->vehicle_type_id = $vehicleTypeId;
                     $cart->shipping_provider = 'Forwarder';
                     $cart->requirement_provider = $cost;
                     $cart->save();
@@ -742,7 +734,6 @@ class CartController extends Controller
                     ]);
                 } else {
                     $cart->shipping_cost = 0;
-                    $cart->vehicle_type_id = $vehicleTypeId;
                     $cart->shipping_provider = null;
                     $cart->save();
                     return response()->json([
@@ -1253,11 +1244,27 @@ class CartController extends Controller
     private function updateTotalPrice(Cart $cart)
     {
         $settings = app(PpnSettings::class);
-        $selectedItems = $cart->items->where('is_selected', true);
+        // Ensure we have fresh items with product relation when cart exists in DB.
+        if ($cart->exists) {
+            $items = $cart->items()->with('product')->get();
+        } else {
+            // For in-memory cart instances (not persisted), use whatever is loaded or an empty collection.
+            $items = $cart->relationLoaded('items') ? $cart->items : collect();
+        }
+
+        // Only consider selected items whose product is present, active and not sold out.
+        $selectedItems = $items->filter(function ($item) {
+            return ($item->is_selected ?? false)
+                && $item->product
+                && ($item->product->is_active ?? false)
+                && !($item->product->sold_out ?? false);
+        });
+
         $subtotal = $selectedItems->sum(fn($item) => $item->quantity * $item->price);
 
         if ($settings->enabled) {
-            $cart->tax_amount = ($subtotal - $cart->discount_amount) * $settings->rate / 100;
+            $taxableBase = max(0, $subtotal - ($cart->discount_amount ?? 0));
+            $cart->tax_amount = $taxableBase * $settings->rate / 100;
         } else {
             $cart->tax_amount = 0;
         }
