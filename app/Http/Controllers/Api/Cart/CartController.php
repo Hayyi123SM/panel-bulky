@@ -228,11 +228,11 @@ class CartController extends Controller
             $cart->load('items.product');
         }
 
-        // Recalculate cart total price
-        $this->updateTotalPrice($cart);
-
         // Reload to get fresh data after updateTotalPrice
         $cart->load('items.product');
+
+        // Recalculate cart total price
+        $this->updateTotalPrice($cart);
 
         return new CartResource($cart);
     }

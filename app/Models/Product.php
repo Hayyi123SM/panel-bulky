@@ -43,6 +43,7 @@ class Product extends Model
         'product_condition_id',
         'product_status_id',
         'sold_out',
+        'note_discrepancy',
         'vehicle_type_id',
         'is_new',
     ];
@@ -95,6 +96,7 @@ class Product extends Model
             'sold_out' => 'boolean',
             'name_trans' => 'json',
             'description_trans' => 'json',
+            'note_discrepancy' => 'integer',
         ];
     }
 
@@ -116,6 +118,7 @@ class Product extends Model
                 'description_trans',
                 'is_active',
                 'sold_out',
+                'note_discrepancy',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()

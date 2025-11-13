@@ -96,7 +96,7 @@ class ProductResource extends Resource
                         Forms\Components\FileUpload::make('pdf_file')
                             ->label('PDF File')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->maxSize(150),
+                            ->maxSize(1000),
                         Forms\Components\Select::make('truck_load_vehicle_type_id')
                             ->label('Jenis Kendaraan Truck Load')
                             ->options([
@@ -158,6 +158,17 @@ class ProductResource extends Resource
                             ->native(false)
                             ->preload()
                             ->searchable(),
+                        // Note: value stored as integer 1..100 representing percent
+                        Forms\Components\TextInput::make('note_discrepancy')
+                            ->label('Catatan perbedaan (%)')
+                            ->type('number')
+                            ->minValue(1)
+                            ->maxValue(100)
+                            ->step(1)
+                            ->required()
+                            ->default(1)
+                            ->helperText('Masukkan persentase (1 - 100). Nilai ini akan ditampilkan sebagai persen.')
+                            ->suffix('%'),
                         //                        Forms\Components\Select::make('vehicle_type_id')
                         //                            ->label('Jenis Kendaraan')
                         //                            ->options(function (){
@@ -195,57 +206,75 @@ class ProductResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('images.0')
                     ->label('Gambar')
-                    ->searchable(),
+                    ->searchable()
+                    ->rounded(),
+
                 Tables\Columns\TextColumn::make('name_trans')
                     ->label('Nama Produk')
                     ->searchable(query: function ($query, $search) {
                         $query->whereRaw('LOWER(name_trans) LIKE ?', ['%' . strtolower($search) . '%']);
                     })
+                    ->sortable()
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('productCategory.name')
+                    ->label('Kategori')
+                    ->searchable()
                     ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('productStatus.status')
+                    ->label('Status')
+                    ->colors([
+                        'danger' => fn($state) => strtolower($state) === 'unavailable' || strtolower($state) === 'inactive',
+                        'warning' => fn($state) => strtolower($state) === 'pending',
+                        'success' => fn($state) => strtolower($state) === 'available' || strtolower($state) === 'active',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('note_discrepancy')
+                    ->label('Catatan perbedaan')
+                    ->formatStateUsing(fn($state) => ($state ?? 0) . '%')
+                    ->colors([
+                        'danger' => fn($state) => $state !== null && $state <= 30,
+                        'warning' => fn($state) => $state !== null && $state > 30 && $state < 70,
+                        'success' => fn($state) => $state !== null && $state >= 70,
+                    ])
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga Produk')
-                    ->prefix('Rp ')
-                    ->numeric(0, ',', '.')
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('id_pallet')
-                    ->label('ID Pallet')
-                    ->searchable(),
+
                 Tables\Columns\TextColumn::make('total_quantity')
                     ->label('Quantity')
-                    ->suffix(' item'),
+                    ->suffix(' item')
+                    ->sortable(),
+
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Diaktifkan')
                     ->onIcon('heroicon-o-check')
                     ->onColor('success')
                     ->alignCenter()
                     ->sortable(),
+
                 Tables\Columns\IconColumn::make('sold_out')
                     ->label('Terjual')
                     ->boolean()
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('productCategory.name')
-                    ->label('Kategori')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('productCondition.title')
-                    ->label('Kondisi Produk')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('productStatus.status')
-                    ->label('Status Produk')
-                    ->searchable(),
+
                 Tables\Columns\ToggleColumn::make('is_new')
                     ->label('Produk Baru')
                     ->onIcon('heroicon-o-check')
                     ->onColor('success')
                     ->alignCenter()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()

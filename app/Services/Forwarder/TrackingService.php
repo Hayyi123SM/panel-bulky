@@ -28,7 +28,8 @@ class TrackingService
         }
 
         $tracking = $this->apiForwarder->post('/trackandtrace', 'TRACKANDTRACE', [
-            "ref_cust_id" => "fdx_liquid8",
+            // "ref_cust_id" => "fdx_liquid8",
+            "ref_cust_id" => "",
             "booking_no" => $booking_no,
         ]);
 

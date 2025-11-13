@@ -75,6 +75,8 @@ class ViewProduct extends ViewRecord
                         TextEntry::make('brands.name')->label('Brand'),
                         TextEntry::make('productCondition.title')->label('Condition'),
                         TextEntry::make('productStatus.status')->label('Status'),
+                        TextEntry::make('note_discrepancy')->label('Catatan perbedaan')
+                            ->formatStateUsing(fn($state) => $state !== null ? $state . '%' : '-'),
                     ])
             ])->inlineLabel()->columns(1);
     }
