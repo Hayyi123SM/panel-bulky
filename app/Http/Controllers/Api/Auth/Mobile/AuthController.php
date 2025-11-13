@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Auth\Mobile\LoginRequest;
 use App\Http\Requests\Api\Auth\Mobile\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Notifications\RegisteredNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,7 +77,7 @@ class AuthController extends Controller
             'username' => $request->username,
         ]);
 
-        event(new Registered($user));
+        $user->notify(new RegisteredNotification($user));
 
         $token = $user->createToken($request->input('device_name'))->plainTextToken;
 
@@ -111,7 +112,7 @@ class AuthController extends Controller
         ]);
 
         $isNewUser = $user->wasRecentlyCreated;
-        if($isNewUser){
+        if ($isNewUser) {
             $user->markEmailAsVerified();
         }
 

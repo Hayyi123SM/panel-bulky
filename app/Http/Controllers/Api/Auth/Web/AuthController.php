@@ -7,7 +7,7 @@ use App\Http\Requests\Api\Auth\Web\LoginRequest;
 use App\Http\Requests\Api\Auth\Web\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use App\Notifications\RegisteredNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -81,15 +81,17 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request)
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone_number' => $request->phone_number,
-            'username' => $request->username,
-        ]);
+        $user = activity()->withoutLogs(function () use ($request) {
+            return User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'phone_number' => $request->phone_number,
+                'username' => $request->username,
+            ]);
+        });
 
-        event(new Registered($user));
+        $user->notify(new RegisteredNotification($user));
 
         Auth::login($user);
 

@@ -6,12 +6,18 @@ use Illuminate\Support\Str;
 
 trait HasSlug
 {
-    public function createUniqueSlug($name): string
+    public function createUniqueSlug($name, $excludeId = null): string
     {
-        $slug = Str::slug($name);
+        $base = Str::slug($name);
+        $slug = $base;
         $counter = 1;
-        while (self::query()->where('slug', '=', $slug)->exists()) {
-            $slug = Str::slug($name) . '-' . $counter++;
+
+        while (self::query()
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->where('slug', '=', $slug)
+            ->exists()
+        ) {
+            $slug = $base . '-' . $counter++;
         }
 
         return $slug;

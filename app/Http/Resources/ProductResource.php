@@ -54,6 +54,8 @@ class ProductResource extends JsonResource
                 default => null
             },
 
+            'note_discrepancy' => $this->note_discrepancy ?? 1,
+
             'warehouse' => $this->warehouse // jika tidak ada warehouse, ambil warehouse pertama sebagai default
                 ? new WarehouseResource($this->warehouse)
                 : new WarehouseResource(Warehouse::query()->first()),
