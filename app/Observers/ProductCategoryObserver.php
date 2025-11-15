@@ -8,6 +8,7 @@ class ProductCategoryObserver
 {
     public function creating(ProductCategory $productCategory): void
     {
+        $productCategory->name = $productCategory->name_trans;
         $productCategory->slug = $productCategory->createUniqueSlug($productCategory->name);
     }
 
@@ -25,7 +26,8 @@ class ProductCategoryObserver
 
     public function updating(ProductCategory $productCategory): void
     {
-        if ($productCategory->isDirty('name')) {
+        if ($productCategory->isDirty('name_trans')) {
+            $productCategory->name = $productCategory->name_trans;
             $productCategory->slug = $productCategory->createUniqueSlug($productCategory->name, $productCategory->id ?? null);
         }
     }
