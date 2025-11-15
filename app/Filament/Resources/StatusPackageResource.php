@@ -28,7 +28,7 @@ class StatusPackageResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('status_trans')
-                    ->label('Status (multibahasa)')
+                    ->label('Status Kemasan')
                     ->required()
                     ->maxLength(255)
                     ->placeholder('Masukkan status paket...'),
