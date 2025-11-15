@@ -74,7 +74,7 @@ class ProductController extends Controller
     {
         $product = Product::whereSlug($slug)
             ->whereIsActive(true)
-            ->with(['productCategory' => fn($q) => $q->withTrashed(), 'productCondition' => fn($q) => $q->withTrashed(), 'brands' => fn($q) => $q->withTrashed(), 'productStatus', 'warehouse'])
+            ->with(['productCategory' => fn($q) => $q->withTrashed(), 'productCondition' => fn($q) => $q->withTrashed(), 'brands' => fn($q) => $q->withTrashed(), 'productStatus', 'statusPackage', 'warehouse'])
             ->firstOrFail();
 
         return new ProductResource($product);
