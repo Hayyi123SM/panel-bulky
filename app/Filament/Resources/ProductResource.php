@@ -158,6 +158,13 @@ class ProductResource extends Resource
                             ->native(false)
                             ->preload()
                             ->searchable(),
+                        Forms\Components\Select::make('status_package_id')
+                            ->label('Status Paket')
+                            ->relationship('statusPackage', 'status')
+                            ->required()
+                            ->native(false)
+                            ->preload()
+                            ->searchable(),
                         // Note: value stored as integer 1..100 representing percent
                         Forms\Components\TextInput::make('note_discrepancy')
                             ->label('Catatan perbedaan (%)')
@@ -166,7 +173,7 @@ class ProductResource extends Resource
                             ->maxValue(100)
                             ->step(1)
                             ->required()
-                            ->default(1)
+                            ->default(0)
                             ->helperText('Masukkan persentase (1 - 100). Nilai ini akan ditampilkan sebagai persen.')
                             ->suffix('%'),
                         //                        Forms\Components\Select::make('vehicle_type_id')
@@ -224,6 +231,15 @@ class ProductResource extends Resource
 
                 Tables\Columns\BadgeColumn::make('productStatus.status')
                     ->label('Status')
+                    ->colors([
+                        'danger' => fn($state) => strtolower($state) === 'unavailable' || strtolower($state) === 'inactive',
+                        'warning' => fn($state) => strtolower($state) === 'pending',
+                        'success' => fn($state) => strtolower($state) === 'available' || strtolower($state) === 'active',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('statusPackage.status')
+                    ->label('Status Paket')
                     ->colors([
                         'danger' => fn($state) => strtolower($state) === 'unavailable' || strtolower($state) === 'inactive',
                         'warning' => fn($state) => strtolower($state) === 'pending',

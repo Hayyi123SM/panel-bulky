@@ -62,6 +62,7 @@ class ProductResource extends JsonResource
             'category' => new ProductCategoryResource($this->whenLoaded('productCategory')),
             'condition' => new ProductConditionResource($this->whenLoaded('productCondition')),
             'status' => new ProductStatusResource($this->whenLoaded('productStatus')),
+            'status_package' => new StatusPackageResource($this->whenLoaded('statusPackage')),
             'rating_avg' => round($this->reviews->avg('rating'), 2),
             'reviews' => ReviewResource::collection($this->reviews()->where('approved', true)->get()),
         ];
