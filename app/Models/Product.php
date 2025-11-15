@@ -42,6 +42,7 @@ class Product extends Model
         'product_category_id',
         'product_condition_id',
         'product_status_id',
+        'status_package_id',
         'sold_out',
         'note_discrepancy',
         'vehicle_type_id',
@@ -66,6 +67,11 @@ class Product extends Model
     public function productStatus(): BelongsTo
     {
         return $this->belongsTo(ProductStatus::class);
+    }
+
+    public function statusPackage(): BelongsTo
+    {
+        return $this->belongsTo(StatusPackage::class);
     }
 
     public function brands(): BelongsToMany
