@@ -39,4 +39,11 @@ class ProductBrandObserver
             ])
             ->log('Merek has been created & updated with WMS ID');
     }
+
+    public function updating(ProductBrand $productBrand): void
+    {
+        if ($productBrand->isDirty('name')) {
+            $productBrand->slug = $productBrand->createUniqueSlug($productBrand->name, $productBrand->id ?? null);
+        }
+    }
 }

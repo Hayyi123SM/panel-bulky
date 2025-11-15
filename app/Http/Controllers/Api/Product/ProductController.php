@@ -46,6 +46,9 @@ class ProductController extends Controller
             ->when($request->status, function ($q) use ($request) {
                 return $q->whereIn('product_status_id', explode(',', $request->status))->withTrashed();
             })
+            ->when($request->status_package, function ($q) use ($request) {
+                return $q->whereIn('status_package_id', explode(',', $request->status_package))->withTrashed();
+            })
             ->when($request->condition, fn($q) => $q->whereHas('productCondition', function ($q) use ($request) {
                 return $q->whereIn('slug', explode(',', $request->condition))->withTrashed();
             }))
@@ -74,7 +77,7 @@ class ProductController extends Controller
     {
         $product = Product::whereSlug($slug)
             ->whereIsActive(true)
-            ->with(['productCategory' => fn($q) => $q->withTrashed(), 'productCondition' => fn($q) => $q->withTrashed(), 'brands' => fn($q) => $q->withTrashed(), 'productStatus', 'warehouse'])
+            ->with(['productCategory' => fn($q) => $q->withTrashed(), 'productCondition' => fn($q) => $q->withTrashed(), 'brands' => fn($q) => $q->withTrashed(), 'productStatus', 'statusPackage', 'warehouse'])
             ->firstOrFail();
 
         return new ProductResource($product);
@@ -148,6 +151,7 @@ class ProductController extends Controller
             'brand_ids.*' => 'exists:product_brands,id',
             'product_condition_id' => 'nullable|exists:product_conditions,id',
             'product_status_id' => 'nullable|exists:product_statuses,id',
+            'status_package_id' => 'nullable|exists:status_packages,id',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_sold' => 'nullable|boolean',
@@ -181,6 +185,7 @@ class ProductController extends Controller
                 'product_category_id' => $request->product_category_id,
                 'product_condition_id' => $request->product_condition_id,
                 'product_status_id' => $request->product_status_id,
+                'status_package_id' => $request->status_package_id,
                 'is_new' => true,
                 'sold_out' => $request->is_sold ?? false,
             ]);
@@ -207,6 +212,7 @@ class ProductController extends Controller
             'products.*.warehouse_id' => 'nullable|exists:warehouses,id',
             'products.*.product_category_id' => 'nullable|exists:product_categories,id',
             'products.*.product_condition_id' => 'nullable|exists:product_conditions,id',
+            'products.*.status_package_id' => 'nullable|exists:status_packages,id',
             'products.*.product_status_id' => 'nullable|exists:product_statuses,id',
             'products.*.brand_ids' => 'nullable|array',
             'products.*.brand_ids.*' => 'exists:product_brands,id',
@@ -241,6 +247,7 @@ class ProductController extends Controller
                         'is_active' => $item['is_active'] ?? true,
                         'product_category_id' => $item['product_category_id'] ?? null,
                         'product_condition_id' => $item['product_condition_id'] ?? null,
+                        'status_package_id' => $item['status_package_id'] ?? null,
                         'product_status_id' => $item['product_status_id'] ?? null,
                         'is_new' => true,
                         'sold_out' => $item['is_sold'] ?? false,

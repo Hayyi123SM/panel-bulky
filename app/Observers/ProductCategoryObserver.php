@@ -22,4 +22,11 @@ class ProductCategoryObserver
         $productCategory->slug = str_replace('deleted-', '', $productCategory->slug);
         $productCategory->save();
     }
+
+    public function updating(ProductCategory $productCategory): void
+    {
+        if ($productCategory->isDirty('name')) {
+            $productCategory->slug = $productCategory->createUniqueSlug($productCategory->name, $productCategory->id ?? null);
+        }
+    }
 }
