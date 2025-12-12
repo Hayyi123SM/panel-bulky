@@ -105,6 +105,16 @@ class ProductResource extends Resource
                                 2726 => 'Fuso Pickup Liquid8 (8 Ton)',
                                 2727 => 'Fuso Box Liquid8 (10 Ton)',
                                 2728 => 'Fuso Pickup Liquid8 (10 Ton)',
+                                2723 => 'CDD Box Liquid8',
+                                2705 => 'Tronton Wing Box Liquid8',
+                                2703 => 'CDE Box Liquid8',
+                                2722 => 'CDE Bak Liquid8',
+                                2724 => 'CDD Bak Liquid8',
+                                2702 => 'Small Pickup Liquid8',
+                                2701 => 'Van Liquid8',
+                                2719 => 'Mobil Liquid8',
+                                2721 => 'Box Kecil Liquid8',
+                                2720 => 'Mobil XL Liquid8',
                             ])
                             ->native(false)
                             ->searchable()

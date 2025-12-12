@@ -63,34 +63,53 @@ class OrderEventListener
         $shippingAddress = $order->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $order->shipping_address : '-';
         $shippingCost = 'Rp ' . number_format($order->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $order->shipping->shipping_cost : 0, 0, ',', '.');
         $discount = 'Rp ' . number_format($order->discount_amount, 0, ',', '.');
+        $totalDiscount = 0;
+        $priceAfterDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - $order->shipping->shipping_cost, 0, ',', '.');
+        $priceBeforeDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - $order->shipping->shipping_cost - $order->discount_amount, 0, ',', '.');
 
         if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             $message = <<<EOT
-                    Pembayaran Anda telah kami terima.
+                    💳 Pembayaran Anda Telah Kami Terima.
 
-                    Full Name: {$order->user->name}
-                    Address: {$shippingAddress}
-                    Whatsapp Number: {$order->phone_number}
-                    Order Number: {$order->order_number}
-                    Product:
+                    Nama: {$order->user->name}
+                    Alamat: {$shippingAddress}
+                    No. WhatsApp: {$order->phone_number}
+
+                    Nomer Pesanan: 
+                    {$order->order_number}
+
+                    📥 Rincian Produk:
 
                     EOT;
 
             $items = $order->items;
             foreach ($items as $item) {
+                $totalDiscount += $item->discount_amount;
                 $totalItem = 'Rp ' . number_format(($item->price * $item->quantity) - $item->discount_amount, 0, ',', '.');
-                $message .= "{$item->product->name_trans} \n$item->quantity x $item->price = $totalItem \n";
+                // $message .= "{$item->product->name_trans} \n$item->quantity x $item->price = $totalItem \n";
+                $message .= "Produk : {$item->product->name_trans} \n";
+                $message .= "Jumlah Unit : $item->quantity \n";
+                $message .= "Harga : Rp " . number_format($item->price, 0, ',', '.') . " \n";
+                $message .= "Diskon : - Rp " . number_format($item->discount_amount, 0, ',', '.') . " \n";
+                $message .= "--------------------------\n";
+                $message .= "Harga Setelah Diskon : Rp " . number_format($item->price - $item->discount_amount, 0, ',', '.') . " \n\n";
             }
-            $message .= "\n-----------------\n";
-            $message .= "Shipping Cost : $shippingCost \n";
-            $message .= "Discount : $discount \n";
+            $message .= "\n💰 Rincian Pembayaran:\n";
+            $message .= "Total Harga : $priceBeforeDiscount \n";
+            $message .= "Total Diskon : - " . $totalDiscount . " \n";
+            $message .= "--------------------------\n";
+            $message .= "Harga Setelah Diskon : $priceAfterDiscount \n";
+            $message .= "--------------------------\n";
+            $message .= "Ongkir : $shippingCost \n";
             $message .= "PPN : $tax \n";
-            $message .= "Total Amount : $total \n";
-            $message .= "Order Date : " . $order->created_at->format('d-m-Y H:i');
-            $message .= "\n\nKami akan segera proses sesuai pesanan Anda.";
-            $message .= "\n\nTerimakasih telah order dari Bulky.id. \n\n Untuk pertanyaan silahkan hubungi kami di admin@bulky.id, Atau untuk info lebih lanjut di https://bulky.id,";
-            $message .= "\n-----------------";
-            $message .= "\nSalam Hangat, \nAdmin Bulky";
+            $message .= "--------------------------\n";
+            $message .= "✅ Total Pembayaran : $total \n";
+            $message .= "==========================\n\n";
+            $message .= "\nTanggal Order : " . $order->created_at->format('d-m-Y H:i');
+            $message .= "\n📦 Pesanan Anda akan segera kami proses sesuai detail di atas.";
+            $message .= "\n\nTerimakasih telah order dari Bulky.id. \n\n Untuk pertanyaan silahkan hubungi kami di 📩 admin@bulky.id, Atau untuk info lebih lanjut di 🌐 https://bulky.id";
+            // $message .= "\n-----------------";
+            // $message .= "\nSalam Hangat, \nAdmin Bulky";
 
             foreach ($order->invoices() as $invoice) {
                 $invoice->user->notify(new SplitPaymentOrderFullPaidNotification($invoice));
@@ -100,58 +119,89 @@ class OrderEventListener
             $order->user->notify(new InvoicePaidNotification($order));
 
             $message = <<<EOT
-                Pembayaran Anda telah kami terima.
+                    💳 Pembayaran Anda Telah Kami Terima.
 
-                Full Name: {$order->user->name}
-                Address: {$shippingAddress}
-                Whatsapp Number: {$order->phone_number}
-                Order Number: {$order->order_number}
-                Product:
+                    Nama: {$order->user->name}
+                    Alamat: {$shippingAddress}
+                    No. WhatsApp: {$order->phone_number}
 
-                EOT;
+                    Nomer Pesanan: 
+                    {$order->order_number}
+
+                    📥 Rincian Produk:
+
+                    EOT;
 
             $items = $order->items;
             foreach ($items as $item) {
+                $totalDiscount += $item->discount_amount;
                 $totalItem = 'Rp ' . number_format(($item->price * $item->quantity) - $item->discount_amount, 0, ',', '.');
-                $message .= "{$item->product->name_trans} \n$item->quantity x $item->price = $totalItem \n";
+                // $message .= "{$item->product->name_trans} \n$item->quantity x $item->price = $totalItem \n";
+                $message .= "Produk : {$item->product->name_trans} \n";
+                $message .= "Jumlah Unit : $item->quantity \n";
+                $message .= "Harga : Rp " . number_format($item->price, 0, ',', '.') . " \n";
+                $message .= "Diskon : - Rp " . number_format($item->discount_amount, 0, ',', '.') . " \n";
+                $message .= "--------------------------\n";
+                $message .= "Harga Setelah Diskon : Rp " . number_format($item->price - $item->discount_amount, 0, ',', '.') . " \n\n";
             }
-            $message .= "\n-----------------\n";
-            $message .= "Shipping Cost : $shippingCost \n";
-            $message .= "Discount : $discount \n";
+            $message .= "\n💰 Rincian Pembayaran:\n";
+            $message .= "Total Harga : $priceBeforeDiscount \n";
+            $message .= "Total Diskon : - " . $totalDiscount . " \n";
+            $message .= "--------------------------\n";
+            $message .= "Harga Setelah Diskon : $priceAfterDiscount \n";
+            $message .= "--------------------------\n";
+            $message .= "Ongkir : $shippingCost \n";
             $message .= "PPN : $tax \n";
-            $message .= "Total Amount : $total \n";
-            $message .= "Order Date : " . $order->created_at->format('d-m-Y H:i');
-            $message .= "\n\nKami akan segera proses sesuai pesanan Anda.";
-            $message .= "\n\nTerimakasih telah order dari Bulky.id. \n\n Untuk pertanyaan silahkan hubungi kami di admin@bulky.id, Atau untuk info lebih lanjut di https://bulky.id,";
-            $message .= "\n-----------------";
-            $message .= "\nSalam Hangat, \nAdmin Bulky";
+            $message .= "--------------------------\n";
+            $message .= "✅ Total Pembayaran : $total \n";
+            $message .= "==========================\n\n";
+            $message .= "\nTanggal Order : " . $order->created_at->format('d-m-Y H:i');
+            $message .= "\n📦 Pesanan Anda akan segera kami proses sesuai detail di atas.";
+            $message .= "\n\nTerimakasih telah order dari Bulky.id. \n\n Untuk pertanyaan silahkan hubungi kami di 📩 admin@bulky.id, Atau untuk info lebih lanjut di 🌐 https://bulky.id";
+            // $message .= "\n-----------------";
+            // $message .= "\nSalam Hangat, \nAdmin Bulky";
 
             WhatsApp::sendMessage($order->user->phone_number, $message);
         }
 
         $sellerMessage = <<<EOT
-                    Pembayaran Telah Diterima Dari :
+                    💳 Pembayaran Telah Diterima
 
-                    Full Name : $order->name
-                    Address : $shippingAddress
-                    Whatsapp number : $order->phone_number
-                    Order Number: $order->order_number
-                    Product :
+                    Buyer: $order->name
+                    Alamat: $shippingAddress
+                    No. WhatsApp: $order->phone_number
+
+                    Nomer Pesanan:
+                    $order->order_number
+
+                    📥 Rincian Produk:
 
                     EOT;
 
         $items = $order->items;
         foreach ($items as $item) {
-            $totalItem = 'Rp ' . number_format(($item->price * $item->quantity) - $item->discount_amount, 0, ',', '.');
-            $sellerMessage .= "{$item->product->name_trans} \n$item->quantity x $item->price = $totalItem \n\n";
+            // $totalItem = 'Rp ' . number_format(($item->price * $item->quantity) - $item->discount_amount, 0, ',', '.');
+            $sellerMessage .= "Produk : {$item->product->name_trans} \n";
+            $sellerMessage .= "Jumlah Unit : $item->quantity \n";
+            $sellerMessage .= "Harga : Rp " . number_format($item->price, 0, ',', '.') . " \n";
+            $sellerMessage .= "Diskon : - Rp " . number_format($item->discount_amount, 0, ',', '.') . " \n";
+            $sellerMessage .= "--------------------------\n";
+            $sellerMessage .= "Harga Setelah Diskon : Rp " . number_format($item->price - $item->discount_amount, 0, ',', '.') . " \n\n";
         }
 
-        $sellerMessage .= "Shipping Cost : $shippingCost \n";
-        $sellerMessage .= "Discount : $discount \n";
+        $sellerMessage .= "\n💰 Rincian Pembayaran:\n";
+        $sellerMessage .= "Total Harga : $priceBeforeDiscount \n";
+        $sellerMessage .= "Total Diskon : - " . $totalDiscount . " \n";
+        $sellerMessage .= "--------------------------\n";
+        $sellerMessage .= "Harga Setelah Diskon : $priceAfterDiscount \n";
+        $sellerMessage .= "--------------------------\n";
+        $sellerMessage .= "Ongkir : $shippingCost \n";
         $sellerMessage .= "PPN : $tax \n";
-        $sellerMessage .= "Total Amount : $total \n";
-        $sellerMessage .= "Order Date : " . $order->created_at->format('d-m-Y H:i');
-        $sellerMessage .= "\n\nMohon segera siapkan produknya sesuai pesanan Customer.";
+        $sellerMessage .= "--------------------------\n";
+        $sellerMessage .= "✅ Total Pembayaran : $total \n";
+        $sellerMessage .= "==========================\n\n";
+        $sellerMessage .= "\nTanggal Order : " . $order->created_at->format('d-m-Y H:i');
+        $sellerMessage .= "\n\n📦Mohon segera siapkan produknya sesuai pesanan Customer.";
 
         // SendWhatsappToSeller::dispatch([
         //     '62811889588', //Pak Niko

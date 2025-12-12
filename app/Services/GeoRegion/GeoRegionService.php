@@ -146,8 +146,8 @@ class GeoRegionService
             'lampung',
 
             // Maluku Utara
-            'maluku utara',
-            'north maluku',
+            // 'maluku utara',
+            // 'north maluku',
 
             // Nanggroe Aceh Darussalam (NAD)
             'aceh',
