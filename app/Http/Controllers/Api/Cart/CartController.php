@@ -225,7 +225,7 @@ class CartController extends Controller
 
             // Refresh items after discount reset
             $cart->refresh();
-            $cart->load('items.product');
+            // $cart->load('items.product');
         }
 
         // Reload to get fresh data after updateTotalPrice
@@ -533,16 +533,16 @@ class CartController extends Controller
             }
             // ...existing code Deliveree
             // selected vehicle for production
-            // $selectedVehicle = match (true) {
-            //     $selectedItemCount >= 5 && $selectedItemCount <= 8 => 2703, // CDE Box Liquid8
-            //     $selectedItemCount >= 9 => 2723, // CDD Box Liquid8
-            //     default => 2701, // van liquid8
-            // };
             $selectedVehicle = match (true) {
-                $selectedCount >= 5 && $selectedCount <= 8 => 14,
-                $selectedCount >= 9 => 75,
-                default => 76,
+                $selectedCount >= 5 && $selectedCount <= 8 => 2703, // CDE Box Liquid8
+                $selectedCount >= 9 => 2723, // CDD Box Liquid8
+                default => 2701, // van liquid8
             };
+            // $selectedVehicle = match (true) {
+            //     $selectedCount >= 5 && $selectedCount <= 8 => 14,
+            //     $selectedCount >= 9 => 75,
+            //     default => 76,
+            // };
             $data = [
                 'time_type' => 'now',
                 'vehicle_type_id' => $selectedVehicle,
@@ -630,9 +630,7 @@ class CartController extends Controller
                 } elseif ($packagingType === 'container') {
                     $vehicleTypeId = 2728;
                 }
-                return response()->json([
-                    'vehicle_type_id' => $vehicleTypeId,
-                ], 422);
+
                 $data = [
                     'time_type' => 'now',
                     'vehicle_type_id' => $vehicleTypeId,
@@ -720,6 +718,15 @@ class CartController extends Controller
                 ]);
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
+                    if (isset($cost['tariff_idr']) && $cost['tariff_idr'] === null) {
+                        $cart->shipping_cost = 0;
+                        $cart->shipping_provider = null;
+                        $cart->save();
+                        return response()->json([
+                            'status' => 'unavailable_address',
+                            'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
+                        ], 422);
+                    }
                     $cart->shipping_cost = $cost['tariff_idr'];
                     $cart->shipping_provider = 'Forwarder';
                     $cart->requirement_provider = $cost;
@@ -840,83 +847,91 @@ class CartController extends Controller
             }
         }
 
-        $order = DB::transaction(function () use ($cart, $request, $user) {
-            $tax = app(PpnSettings::class);
-            $expired = now()->addMinutes(15);
+        try {
+            $order = DB::transaction(function () use ($cart, $request, $user) {
+                $tax = app(PpnSettings::class);
+                $expired = now()->addMinutes(15);
 
-            if ($request->input('payment_type') == OrderPaymentTypeEnum::SplitPayment->value) {
-                $expired = now()->addHour();
-            }
+                if ($request->input('payment_type') == OrderPaymentTypeEnum::SplitPayment->value) {
+                    $expired = now()->addHour();
+                }
 
-            if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP && $cart->shipping_cost <= 0) {
-                throw ValidationException::withMessages(['shipping_cost' => ['Shipping cost must be greater than 0 for courier pickup.']]);
-            }
+                if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP && $cart->shipping_cost <= 0) {
+                    throw ValidationException::withMessages(['shipping_cost' => ['Shipping cost must be greater than 0 for courier pickup.']]);
+                }
 
-            $shipping_cost = $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $cart->shipping_cost : 0;
-            $total = $cart->total_price + $shipping_cost - ($cart->discount_amount ?? 0);
+                $shipping_cost = $cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $cart->shipping_cost : 0;
+                $total = $cart->total_price + $shipping_cost - ($cart->discount_amount ?? 0);
 
-            if ($tax->enabled) {
-                $total += $cart->tax_amount;
-            }
+                if ($tax->enabled) {
+                    $total += $cart->tax_amount;
+                }
 
-            if ($request->input('is_insurance') === true && $cart->shipping_provider === "Forwarder") {
-                $insurance_percentage = $cart->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? 0.125 : 0.2;
-                $insurance_amount = ($insurance_percentage / 100) * $cart->total_price;
-                $total += $insurance_amount;
-            }
+                if ($request->input('is_insurance') === true && $cart->shipping_provider === "Forwarder") {
+                    $insurance_percentage = $cart->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? 0.125 : 0.2;
+                    $insurance_amount = ($insurance_percentage / 100) * $cart->total_price;
+                    $total += $insurance_amount;
+                }
 
-            $order = Order::withCount(['items', 'invoices'])->with(['items', 'invoices'])->create([
-                'user_id' => $user->id,
-                'total_price' => $total,
-                'payment_method' => $request->input('payment_type'),
-                'notes' => $request->input('notes'),
-                'payment_expired_at' => $expired,
-                'shipping_method' => $cart->shipping_method,
-                'name' => $cart->address?->name ?? $cart->user->name,
-                'phone_number' => $cart->address?->phone_number ?? $cart->user->phone_number,
-                'shipping_address' => $cart->address?->address,
-                'latitude' => $cart->address?->latitude,
-                'longitude' => $cart->address?->longitude,
-                'discount_amount' => $cart->discount_amount ?? 0,
-                'tax_rate' => $tax->rate,
-                'tax_amount' => $cart->tax_amount,
-                'is_tax_active' => $tax->enabled,
-            ]);
-
-            $cart->items()->whereIsSelected(true)->each(function ($item) use ($order) {
-                $order->items()->create([
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'discount_amount' => $item->discount_amount,
+                $order = Order::withCount(['items', 'invoices'])->with(['items', 'invoices'])->create([
+                    'user_id' => $user->id,
+                    'total_price' => $total,
+                    'payment_method' => $request->input('payment_type'),
+                    'notes' => $request->input('notes'),
+                    'payment_expired_at' => $expired,
+                    'shipping_method' => $cart->shipping_method,
+                    'name' => $cart->address?->name ?? $cart->user->name,
+                    'phone_number' => $cart->address?->phone_number ?? $cart->user->phone_number,
+                    'shipping_address' => $cart->address?->address,
+                    'latitude' => $cart->address?->latitude,
+                    'longitude' => $cart->address?->longitude,
+                    'discount_amount' => $cart->discount_amount ?? 0,
+                    'tax_rate' => $tax->rate,
+                    'tax_amount' => $cart->tax_amount,
+                    'is_tax_active' => $tax->enabled,
                 ]);
 
-                $this->setProductToSold($item->product);
+                $cart->items()->whereIsSelected(true)->each(function ($item) use ($order) {
+                    $order->items()->create([
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'discount_amount' => $item->discount_amount,
+                    ]);
+
+                    $this->setProductToSold($item->product);
+                });
+
+                $coupon = Coupon::whereCode($cart->coupon_code)->first();
+                $coupon?->usages()->create([
+                    'user_id' => $user->id,
+                    'order_id' => $order->id,
+                ]);
+
+                if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
+                    $order->shipping()->create([
+                        'shipping_provider' => $cart->shipping_provider,
+                        'requirement_provider' => $cart->requirement_provider,
+                        'shipping_cost' => $cart->shipping_cost,
+                        'vehicle_type' => $cart->vehicle_type_id,
+                        'is_insurance' => $request->input('is_insurance') ?? false,
+                        'insurance_amount' => $insurance_amount ?? 0,
+                        'insurance_percentage' => $insurance_percentage ?? 0,
+                    ]);
+                }
+
+                $this->createInvoices($order, $request);
+                $this->removeItemAfterOrder($cart);
+
+                return $order;
             });
-
-            $coupon = Coupon::whereCode($cart->coupon_code)->first();
-            $coupon?->usages()->create([
-                'user_id' => $user->id,
-                'order_id' => $order->id,
-            ]);
-
-            if ($cart->shipping_method == ShippingMethodEnum::COURIER_PICKUP) {
-                $order->shipping()->create([
-                    'shipping_provider' => $cart->shipping_provider,
-                    'requirement_provider' => $cart->requirement_provider,
-                    'shipping_cost' => $cart->shipping_cost,
-                    'vehicle_type' => $cart->vehicle_type_id,
-                    'is_insurance' => $request->input('is_insurance') ?? false,
-                    'insurance_amount' => $insurance_amount ?? 0,
-                    'insurance_percentage' => $insurance_percentage ?? 0,
-                ]);
-            }
-
-            $this->createInvoices($order, $request);
-            $this->removeItemAfterOrder($cart);
-
-            return $order;
-        });
+        } catch (\Exception $e) {
+            Log::error('Order Creation Failed: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'order_creation_failed',
+                'message' => 'Gagal membuat order'
+            ], 500);
+        }
 
         event(new OrderCreatedEvent($order));
 
