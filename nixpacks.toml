@@ -1,8 +1,8 @@
 [phases.setup]
 nixPkgs = [
-  "php82",
-  "php82Extensions.pdo_mysql",
-  "php82Packages.composer",
+  "php83",
+  "php83Extensions.pdo_mysql",
+  "php83Packages.composer",
   "mariadb",
   "nodejs_20"
 ]
