@@ -2,17 +2,20 @@
 nixPkgs = [
   "php82",
   "php82Extensions.pdo_mysql",
-  "mariadb"
+  "mariadb",
+  "composer",
+  "nodejs_20"
 ]
 
 [phases.install]
 cmds = [
-  "composer install --ignore-platform-reqs",
+  "composer install",
   "npm ci"
 ]
 
 [phases.build]
 cmds = [
+  "npm run build",
   "composer install --no-dev --optimize-autoloader"
 ]
 
