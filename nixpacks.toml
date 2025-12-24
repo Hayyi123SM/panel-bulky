@@ -2,7 +2,13 @@
 nixPkgs = [
   "php82",
   "php82Extensions.pdo_mysql",
-  "mysql"
+  "mariadb"
+]
+
+[phases.install]
+cmds = [
+  "composer install --ignore-platform-reqs",
+  "npm ci"
 ]
 
 [phases.build]
