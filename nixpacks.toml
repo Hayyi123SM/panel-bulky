@@ -1,0 +1,24 @@
+[phases.setup]
+nixPkgs = [
+  "php83",
+  "php83Extensions.pdo_mysql",
+  "php83Packages.composer",
+  "mariadb",
+  "nodejs_20"
+]
+
+
+[phases.install]
+cmds = [
+  "composer install --no-dev --optimize-autoloader",
+  "npm ci"
+]
+
+[phases.build]
+cmds = [
+  "npm run build",
+  "php artisan filament:assets"
+]
+
+[start]
+cmd = "php artisan serve --host=0.0.0.0 --port=8000"
