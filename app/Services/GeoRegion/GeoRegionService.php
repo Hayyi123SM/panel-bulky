@@ -59,7 +59,7 @@ class GeoRegionService
 
     public function getLocationFromGoogleMaps(float $lat, float $lng): ?array
     {
-        $apiKey = env('GOOGLE_MAPS_API_KEY');
+        $apiKey = config('services.google.maps_api_key');
 
         $response = Http::get("https://maps.googleapis.com/maps/api/geocode/json", [
             'latlng' => "$lat,$lng",

@@ -35,3 +35,6 @@ yarn-error.log
 /nextjs/.env.test.local
 /nextjs/.env.production.local
 /nextjs/.vercel
+**/caddy
+frankenphp
+frankenphp-worker.php

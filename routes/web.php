@@ -6,6 +6,7 @@ use App\Services\WhatsApp\WhatsApp;
 use Filament\Actions\Exports\Http\Controllers\DownloadExport;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ExportController;
 
 //Route::get('/test/a', function () {
 //    $order = Order::find('9e5b85a0-4b99-41a6-a816-2624447e2ba9');
@@ -40,3 +41,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/filament/exports/{export}/download', DownloadExport::class)
     ->name('filament.exports.download')
     ->middleware(['web', 'auth:admin']);
+
+Route::get('/exports/download/{user_id}/{filename}', [ExportController::class, 'download'])
+    ->name('exports.download');

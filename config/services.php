@@ -40,6 +40,7 @@ return [
         'client_id_mobile' => env('GOOGLE_CLIENT_ID_MOBILE'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT'),
+        'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
     'midtrans' => [
