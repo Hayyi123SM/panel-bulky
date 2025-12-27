@@ -15,11 +15,11 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "npm run build"
+  "npm run build",
+  "php artisan key:generate --force",
+  "php artisan optimize:clear",
+  "php artisan config:cache"
 ]
 
 [start]
-cmd = "php artisan key:generate --force || true
-php artisan optimize:clear || true
-php artisan config:cache || true
-php artisan octane:frankenphp --host=0.0.0.0 --port=8000"
+cmd = "php artisan octane:frankenphp --host=0.0.0.0 --port=8000"
