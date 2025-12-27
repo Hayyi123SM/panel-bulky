@@ -18,8 +18,8 @@ cmds = [
 cmds = [
   "npm run build",
   "php artisan filament:assets",
-  "php artisan optimize:clear",
-  "php artisan optimize"
+  "php artisan filament:optimize-clear",
+  "php artisan filament:optimize"
 ]
 
 [start]
