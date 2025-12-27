@@ -718,7 +718,7 @@ class CartController extends Controller
                 ]);
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
-                    if (isset($cost['tariff_idr']) && $cost['tariff_idr'] === null) {
+                    if (isset($cost['tariff_idr']) && !is_numeric($cost['tariff_idr'])) {
                         $cart->shipping_cost = 0;
                         $cart->shipping_provider = null;
                         $cart->save();

@@ -64,8 +64,8 @@ class OrderEventListener
         $shippingCost = 'Rp ' . number_format($order->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $order->shipping->shipping_cost : 0, 0, ',', '.');
         $discount = 'Rp ' . number_format($order->discount_amount, 0, ',', '.');
         $totalDiscount = 0;
-        $priceAfterDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - $order->shipping->shipping_cost, 0, ',', '.');
-        $priceBeforeDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - $order->shipping->shipping_cost - $order->discount_amount, 0, ',', '.');
+        $priceAfterDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - ($order->shipping->shipping_cost ?? 0), 0, ',', '.');
+        $priceBeforeDiscount = 'Rp ' . number_format($order->total_price - $order->tax_amount - ($order->shipping->shipping_cost ?? 0) - $order->discount_amount, 0, ',', '.');
 
         if ($order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             $message = <<<EOT
