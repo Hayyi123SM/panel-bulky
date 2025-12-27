@@ -3,7 +3,6 @@ nixPkgs = [
   "php83",
   "php83Extensions.pdo_mysql",
   "php83Packages.composer",
-  "mariadb",
   "nodejs_20"
 ]
 
@@ -16,10 +15,13 @@ cmds = [
 [phases.build]
 cmds = [
   "npm run build",
-  "php artisan filament:assets",
-  "php artisan optimize:clear",
-  "php artisan config:cache"
+  "php artisan filament:assets"
 ]
 
 [start]
-cmd = "php -S 0.0.0.0:8000 -t public"
+cmd = """
+php artisan key:generate --force || true
+php artisan optimize:clear || true
+php artisan config:cache || true
+php artisan octane:frankenphp --workers=4 --max-requests=1000 --host=0.0.0.0 --port=8000
+"""
