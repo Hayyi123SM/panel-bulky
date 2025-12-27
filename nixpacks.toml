@@ -7,18 +7,17 @@ nixPkgs = [
   "nodejs_20"
 ]
 
+
 [phases.install]
 cmds = [
-  "composer install",
+  "composer install --no-dev --optimize-autoloader",
   "npm ci"
 ]
 
 [phases.build]
 cmds = [
   "npm run build",
-  "php artisan key:generate --force",
-  "php artisan optimize:clear",
-  "php artisan config:cache"
+  "php artisan filament:assets"
 ]
 
 [start]
