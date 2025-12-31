@@ -49,6 +49,7 @@ class GeoRegionService
     ];
 
     protected array $jabodetabekProvinces = [
+        'jakarta',
         'dki jakarta',
         'daerah khusus ibukota jakarta',
         'special capital region of jakarta',
@@ -196,7 +197,7 @@ class GeoRegionService
         }
 
         // Jika provinsi adalah DKI Jakarta, maka otomatis Jabodetabek
-        if (in_array($province, ['dki jakarta', 'daerah khusus ibukota jakarta', 'special capital region of jakarta'])) {
+        if (in_array($province, $this->jabodetabekProvinces)) {
             return true;
         }
 
