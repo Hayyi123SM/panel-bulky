@@ -1,27 +1,61 @@
+# ===============================
+# NIXPACKS – LARAVEL + FRANKENPHP
+# ===============================
+
 [phases.setup]
 nixPkgs = [
+  # PHP core
   "php83",
   "php83Extensions.pdo_mysql",
+  "php83Extensions.opcache",
+  "php83Extensions.mbstring",
+  "php83Extensions.bcmath",
+  "php83Extensions.intl",
+  "php83Extensions.zip",
+  "php83Extensions.fileinfo",
+
+  # Composer
   "php83Packages.composer",
-  "mariadb",
-  "nodejs_20"
+
+  # Node (Filament assets)
+  "nodejs_20",
+
+  # FrankenPHP (Caddy)
+  "frankenphp"
 ]
 
-
+# ===============================
+# INSTALL DEPENDENCIES
+# ===============================
 [phases.install]
 cmds = [
-  "composer install --no-dev --optimize-autoloader",
-  "npm install"
+  "composer install --no-dev --optimize-autoloader --no-interaction",
+  "npm ci"
 ]
 
+# ===============================
+# BUILD / OPTIMIZE
+# ===============================
 [phases.build]
 cmds = [
+  # Build frontend assets
   "npm run build",
+
+  # Filament 3 (WAJIB)
   "php artisan filament:assets",
-  "php artisan filament:optimize-clear",
-  "php artisan filament:optimize"
+
+  # Laravel optimization
+  "php artisan key:generate --force || true",
+  "php artisan storage:link || true",
+
+  "php artisan optimize:clear",
+  "php artisan config:cache",
+  "php artisan route:cache",
+  "php artisan view:cache"
 ]
 
+# ===============================
+# RUNTIME (FRANKENPHP WORKER)
+# ===============================
 [start]
-cmd = "php artisan octane:frankenphp --host=0.0.0.0 --port=8000"
-
+cmd = "frankenphp run --config Caddyfile"
