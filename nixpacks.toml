@@ -22,9 +22,6 @@ nixPkgs = [
 
   # Node (Filament assets)
   "nodejs_20",
-
-  # FrankenPHP (Caddy)
-  "frankenphp"
 ]
 
 # ===============================
@@ -62,4 +59,5 @@ cmds = [
 # RUNTIME (FRANKENPHP WORKER)
 # ===============================
 [start]
-cmd = "frankenphp run --config Caddyfile"
+cmd = "php artisan octane:frankenphp --host=0.0.0.0 --port=8000 --workers=auto --max-requests=500"
+
