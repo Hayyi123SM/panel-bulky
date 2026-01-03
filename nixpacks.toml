@@ -46,7 +46,6 @@ cmds = [
   "php artisan filament:optimize-clear",
 
   # Laravel optimization
-  "php artisan key:generate --force || true",
   "php artisan storage:link || true",
 
   "php artisan config:clear",
