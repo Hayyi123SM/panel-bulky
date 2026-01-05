@@ -1,0 +1,18 @@
+{
+    auto_https off
+    admin off
+}
+
+:8000 {
+    root * /app/public
+    encode zstd gzip
+
+    php {
+        worker {
+            file /app/public/index.php
+            num 2
+        }
+    }
+
+    file_server
+}
