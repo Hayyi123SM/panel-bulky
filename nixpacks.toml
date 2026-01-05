@@ -14,7 +14,7 @@ nixPkgs = [
   "php83Extensions.fileinfo",
 
   # Mariadb
-  "mariadb"
+  "mariadb",
   
   # Composer
   "php83Packages.composer",
