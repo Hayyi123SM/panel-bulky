@@ -7,7 +7,7 @@
     root * /app/public
     encode zstd gzip
 
-    php {
+    php_server {
         worker {
             file /app/public/index.php
             num 2
