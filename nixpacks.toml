@@ -5,7 +5,7 @@
 [phases.setup]
 nixPkgs = [
   # PHP
-  "php83",
+  "php83.withExtensions",
   "php83Extensions.pdo_mysql",
   "php83Extensions.redis",
   "php83Extensions.opcache",
