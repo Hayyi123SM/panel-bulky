@@ -1,17 +1,37 @@
 ##############################################
-# FRANKENPHP
+# 1) COMPOSER BUILD STAGE
+##############################################
+FROM composer:2 AS composer_build
+
+WORKDIR /app
+
+COPY . .
+
+RUN composer install --no-dev --no-interaction --prefer-dist
+
+
+##############################################
+# 2) NODE BUILD STAGE
+##############################################
+FROM node:20-alpine AS node_build
+
+WORKDIR /app
+COPY package.json package-lock.json* yarn.lock* ./
+
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+
+##############################################
+# 3) FRANKENPHP RUNTIME
 ##############################################
 FROM dunglas/frankenphp:1-php8.3 AS runtime
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
- && docker-php-ext-configure intl \
- && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
-
-# Install runtime PHP extensions (lighter than build)
+# Install PHP runtime extensions
 RUN install-php-extensions \
     pdo_mysql \
     intl \
@@ -22,31 +42,22 @@ RUN install-php-extensions \
     zip \
     sockets
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
+# Copy application source
 COPY . .
 
-#install composer
-RUN composer install --no-dev --no-interaction --prefer-dist
+# Copy vendor from composer stage
+COPY --from=composer_build /app/vendor ./vendor
+
+# Copy build assets from node stage
+COPY --from=node_build /app/public/build ./public/build
 
 # Laravel optimization
-RUN php artisan optimize
-RUN php artisan storage:link
+RUN php artisan optimize --no-interaction || true
+RUN php artisan storage:link || true
 
-# FrankenPHP runtime env
+# Runtime env
 ENV APP_ENV=production
 ENV SERVE_STATIC_FILES=true
 
-##############################################
-# NODE STAGE FOR FRONTEND ASSETS
-##############################################
-FROM node:20-alpine AS node_build
-
-WORKDIR /app
-COPY package.json package-lock.json* yarn.lock* ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
+# Run FrankenPHP with Caddyfile
 CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
