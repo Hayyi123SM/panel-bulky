@@ -41,9 +41,6 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Copy build assets
-COPY --from=node_build /app/public/build ./public/build
-
 # Permissions for storage
 RUN mkdir -p storage bootstrap/cache \
   && chown -R www-data:www-data storage bootstrap/cache
