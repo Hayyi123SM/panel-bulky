@@ -15,7 +15,7 @@ nixPkgs = [
   "php82Extensions.fileinfo",
   
   # Composer
-  "php83Packages.composer",
+  "php82Packages.composer",
 
   # Node (Filament assets)
   "nodejs_20",
