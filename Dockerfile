@@ -1,7 +1,7 @@
 # ================================
 # 1) BUILDER: Composer Dependencies
 # ================================
-FROM composer:2-php8.3 AS vendor
+FROM composer:latest AS vendor
 
 # Install runtime extensions needed for composer
 RUN apt-get update && apt-get install -y --no-install-recommends \
