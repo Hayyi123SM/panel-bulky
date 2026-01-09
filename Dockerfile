@@ -29,6 +29,14 @@ COPY . .
 #install composer
 RUN composer install --no-dev --no-interaction --prefer-dist
 
+# Laravel optimization
+RUN php artisan optimize
+RUN php artisan storage:link
+
+# FrankenPHP runtime env
+ENV APP_ENV=production
+ENV SERVE_STATIC_FILES=true
+
 ##############################################
 # NODE STAGE FOR FRONTEND ASSETS
 ##############################################
@@ -40,13 +48,5 @@ RUN npm install
 
 COPY . .
 RUN npm run build
-
-# Laravel optimization
-RUN php artisan optimize
-RUN php artisan storage:link
-
-# FrankenPHP runtime env
-ENV APP_ENV=production
-ENV SERVE_STATIC_FILES=true
 
 CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
