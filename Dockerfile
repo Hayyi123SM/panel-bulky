@@ -52,5 +52,10 @@ COPY --from=node_build /app/public/build ./public/build
 
 RUN php artisan optimize --no-interaction || true
 RUN php artisan storage:link || true
+RUN php artisan event:cache || true
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
 
-CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
+# CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
