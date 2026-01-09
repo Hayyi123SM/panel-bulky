@@ -1,37 +1,55 @@
-# ================================
-# 1) BUILDER: Composer Dependencies
-# ================================
-FROM composer:latest AS vendor
+##############################################
+# 1) BASE PHP FOR COMPOSER (BUILD STAGE)
+##############################################
+FROM php:8.3-cli AS composer_build
 
-# Install runtime extensions needed for composer
+# Install system deps for intl, gd, zip, etc
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
     libicu-dev \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype-dev \
     libzip-dev \
-    && docker-php-ext-install intl gd zip
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+# Configure PHP extensions
+RUN docker-php-ext-configure intl \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg
+
+# Install PHP extensions needed by Laravel + Filament
+RUN docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
+
+# Copy Composer binary from official image (clean & recommended)
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Set workdir and install dependencies
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
+RUN composer install --no-dev --no-interaction --prefer-dist
 
+##############################################
+# 2) NODE STAGE FOR FRONTEND ASSETS
+##############################################
+FROM node:20-alpine AS node_build
 
-# ================================
-# 2) BUILDER: Node for Filament assets
-# ================================
-FROM node:20-alpine AS node
 WORKDIR /app
-COPY package*.json ./
+COPY package.json package-lock.json* yarn.lock* ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
+##############################################
+# 3) RUNTIME: FRANKENPHP
+##############################################
+FROM dunglas/frankenphp:1-php8.3 AS runtime
 
-# ================================
-# 3) FINAL IMAGE: FrankenPHP Runtime
-# ================================
-FROM dunglas/frankenphp:1.0-php8.3 AS runner
+WORKDIR /app
 
-# Install PHP extensions for Laravel + Filament
+# Install runtime PHP extensions (lighter than build)
 RUN install-php-extensions \
     pdo_mysql \
     intl \
@@ -42,24 +60,26 @@ RUN install-php-extensions \
     zip \
     sockets
 
-WORKDIR /app
-
-# Copy application files
+# Copy app source
 COPY . .
 
-# Copy vendors from composer stage
-COPY --from=vendor /app/vendor ./vendor
+# Copy vendor from composer build
+COPY --from=composer_build /app/vendor ./vendor
 
-# Copy built assets
-COPY --from=node /app/public/build ./public/build
+# Copy build assets
+COPY --from=node_build /app/public/build ./public/build
 
-# Ensure storage & cache writable
+# Permissions for storage
 RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+  && chown -R www-data:www-data storage bootstrap/cache
 
+# Laravel optimization
+RUN php artisan optimize
+
+# FrankenPHP runtime env
 ENV APP_ENV=production
 ENV SERVE_STATIC_FILES=true
-ENV FRANKENPHP_CONFIG="worker ./public/index.php 8"
+ENV FRANKENPHP_CONFIG="worker ./public/index.php 4"
 
 EXPOSE 8080
 
