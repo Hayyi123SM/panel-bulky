@@ -41,12 +41,9 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Permissions for storage
-RUN mkdir -p storage bootstrap/cache \
-  && chown -R www-data:www-data storage bootstrap/cache
-
 # Laravel optimization
 RUN php artisan optimize
+RUN php artisan storage:link
 
 # FrankenPHP runtime env
 ENV APP_ENV=production
