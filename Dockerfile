@@ -68,8 +68,5 @@ RUN php artisan optimize
 # FrankenPHP runtime env
 ENV APP_ENV=production
 ENV SERVE_STATIC_FILES=true
-ENV FRANKENPHP_CONFIG="worker ./public/index.php 4"
 
-EXPOSE 8080
-
-CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
+CMD ["php", "frankenphp", "run", "--config=/app/Caddyfile"]
