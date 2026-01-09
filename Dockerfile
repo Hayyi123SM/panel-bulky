@@ -72,4 +72,4 @@ ENV FRANKENPHP_CONFIG="worker ./public/index.php 4"
 
 EXPOSE 8080
 
-CMD ["php", "frankenphp", "run", "--config=none"]
+CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
