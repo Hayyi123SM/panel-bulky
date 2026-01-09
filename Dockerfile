@@ -5,6 +5,12 @@ FROM dunglas/frankenphp:1-php8.3 AS runtime
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
+ && docker-php-ext-configure intl \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
+
 # Install runtime PHP extensions (lighter than build)
 RUN install-php-extensions \
     pdo_mysql \
@@ -16,23 +22,11 @@ RUN install-php-extensions \
     zip \
     sockets
 
-# Copy app source
-COPY . .
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
- && docker-php-ext-configure intl \
- && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
-
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
-
-# copy full project dulu
 COPY . .
 
-# baru install composer
+#install composer
 RUN composer install --no-dev --no-interaction --prefer-dist
 
 ##############################################
