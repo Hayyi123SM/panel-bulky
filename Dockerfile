@@ -44,7 +44,9 @@ RUN install-php-extensions \
     bcmath \
     opcache \
     zip \
-    sockets
+    sockets \
+    pcntl \
+    posix
 
 COPY . .
 COPY --from=composer_build /app/vendor ./vendor
