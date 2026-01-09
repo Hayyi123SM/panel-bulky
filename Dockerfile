@@ -3,31 +3,20 @@
 ##############################################
 FROM php:8.3-cli AS composer_build
 
-# Install system deps for intl, gd, zip, etc
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    unzip \
-    libicu-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype-dev \
-    libzip-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
+ && docker-php-ext-configure intl \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
 
-# Configure PHP extensions
-RUN docker-php-ext-configure intl \
- && docker-php-ext-configure gd --with-freetype --with-jpeg
-
-# Install PHP extensions needed by Laravel + Filament
-RUN docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
-
-# Copy Composer binary from official image (clean & recommended)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set workdir and install dependencies
 WORKDIR /app
-COPY composer.json composer.lock ./
+
+# copy full project dulu
+COPY . .
+
+# baru install composer
 RUN composer install --no-dev --no-interaction --prefer-dist
 
 ##############################################
