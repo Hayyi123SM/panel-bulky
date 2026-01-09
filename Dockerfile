@@ -1,38 +1,5 @@
 ##############################################
-# 1) BASE PHP FOR COMPOSER (BUILD STAGE)
-##############################################
-FROM php:8.3-cli AS composer_build
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
- && docker-php-ext-configure intl \
- && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
-
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-WORKDIR /app
-
-# copy full project dulu
-COPY . .
-
-# baru install composer
-RUN composer install --no-dev --no-interaction --prefer-dist
-
-##############################################
-# 2) NODE STAGE FOR FRONTEND ASSETS
-##############################################
-FROM node:20-alpine AS node_build
-
-WORKDIR /app
-COPY package.json package-lock.json* yarn.lock* ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-##############################################
-# 3) RUNTIME: FRANKENPHP
+# FRANKENPHP
 ##############################################
 FROM dunglas/frankenphp:1-php8.3 AS runtime
 
@@ -52,8 +19,33 @@ RUN install-php-extensions \
 # Copy app source
 COPY . .
 
-# Copy vendor from composer build
-COPY --from=composer_build /app/vendor ./vendor
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
+ && docker-php-ext-configure intl \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install intl gd zip pcntl bcmath opcache mysqli
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+# copy full project dulu
+COPY . .
+
+# baru install composer
+RUN composer install --no-dev --no-interaction --prefer-dist
+
+##############################################
+# NODE STAGE FOR FRONTEND ASSETS
+##############################################
+FROM node:20-alpine AS node_build
+
+WORKDIR /app
+COPY package.json package-lock.json* yarn.lock* ./
+RUN npm install
+
+COPY . .
+RUN npm run build
 
 # Copy build assets
 COPY --from=node_build /app/public/build ./public/build
@@ -69,4 +61,4 @@ RUN php artisan optimize
 ENV APP_ENV=production
 ENV SERVE_STATIC_FILES=true
 
-CMD ["php", "frankenphp", "run", "--config=/app/Caddyfile"]
+CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
