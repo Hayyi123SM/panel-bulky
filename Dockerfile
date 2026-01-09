@@ -1,21 +1,27 @@
 # ================================
 # 1) BUILDER: Composer Dependencies
 # ================================
-FROM composer:2 AS vendor
+FROM composer:2-php8.3 AS vendor
+
+# Install runtime extensions needed for composer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libicu-dev \
+    libpng-dev \
+    libzip-dev \
+    && docker-php-ext-install intl gd zip
 
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
+
 
 # ================================
 # 2) BUILDER: Node for Filament assets
 # ================================
 FROM node:20-alpine AS node
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install --frozen-lockfile
-
+RUN npm install
 COPY . .
 RUN npm run build
 
@@ -23,43 +29,38 @@ RUN npm run build
 # ================================
 # 3) FINAL IMAGE: FrankenPHP Runtime
 # ================================
-FROM dunglas/frankenphp:1-php8.3 AS runner
+FROM dunglas/frankenphp:1.0-php8.3 AS runner
 
-# Set working directory
-WORKDIR /app
-
-# Install required PHP extensions
+# Install PHP extensions for Laravel + Filament
 RUN install-php-extensions \
     pdo_mysql \
-    mbstring \
     intl \
-    sockets \
-    opcache \
+    gd \
+    mbstring \
     bcmath \
-    zip
+    opcache \
+    zip \
+    sockets
 
-# Copy Laravel app
+WORKDIR /app
+
+# Copy application files
 COPY . .
 
-# Copy vendor from composer stage
+# Copy vendors from composer stage
 COPY --from=vendor /app/vendor ./vendor
 
 # Copy built assets
 COPY --from=node /app/public/build ./public/build
 
-# Ensure cache & storage are writable
+# Ensure storage & cache writable
 RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# Optimize Laravel
-RUN php artisan optimize
-
-# Env for production
 ENV APP_ENV=production
 ENV SERVE_STATIC_FILES=true
 ENV FRANKENPHP_CONFIG="worker ./public/index.php 8"
 
-# Expose FrankenPHP default port
 EXPOSE 8080
 
 CMD ["php", "frankenphp", "run", "--config=none"]
