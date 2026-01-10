@@ -48,7 +48,8 @@ RUN install-php-extensions \
     zip \
     sockets \
     pcntl \
-    posix
+    posix \
+    redis
 
 # copy app & built assets
 COPY . .
