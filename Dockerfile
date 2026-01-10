@@ -68,4 +68,4 @@ RUN php artisan view:cache || true
 
 ENTRYPOINT ["/usr/bin/php"]
 
-CMD ["artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
