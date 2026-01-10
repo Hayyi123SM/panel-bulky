@@ -17,10 +17,6 @@ COPY . .
 # install backend deps
 RUN composer install --no-dev --no-interaction --prefer-dist
 
-# install octane & frankenphp server config jika belum
-RUN php artisan octane:install --server=frankenphp || true
-
-
 ##############################################
 # 2) NODE BUILD STAGE
 ##############################################
@@ -59,6 +55,11 @@ COPY . .
 COPY --from=composer_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
+COPY .env.example .env
+RUN php artisan key:generate
+
+RUN php artisan octane:install --server=frankenphp
+
 # laravel caches (opsional)
 RUN php artisan optimize --no-interaction || true
 RUN php artisan storage:link || true
@@ -66,6 +67,6 @@ RUN php artisan config:cache || true
 RUN php artisan route:cache || true
 RUN php artisan view:cache || true
 
-CMD ["frankenphp", "php-server"]
-# CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
+# CMD ["frankenphp", "php-server"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
 
