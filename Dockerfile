@@ -62,4 +62,3 @@ RUN php artisan view:cache
 ENTRYPOINT []
 
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
-# CMD ["frankenphp", "run", "--config=/app/Caddyfile"]
