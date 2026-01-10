@@ -16,6 +16,9 @@ COPY . .
 
 RUN composer install --no-dev --no-interaction --prefer-dist
 
+# Ensure Octane installed (only needed if config not committed)
+RUN php artisan octane:install --server=frankenphp || true
+
 
 ##############################################
 # 2) NODE BUILD STAGE
