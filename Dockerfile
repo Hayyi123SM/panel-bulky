@@ -7,16 +7,17 @@ RUN apt-get update && apt-get install -y \
     git unzip libicu-dev libpng-dev libjpeg-dev libfreetype-dev libzip-dev \
  && docker-php-ext-configure intl \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install intl gd zip
+ && docker-php-ext-install intl gd zip pcntl bcmath opcache
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 COPY . .
 
+# install backend deps
 RUN composer install --no-dev --no-interaction --prefer-dist
 
-# Ensure Octane installed (only needed if config not committed)
+# install octane & frankenphp server config jika belum
 RUN php artisan octane:install --server=frankenphp || true
 
 
@@ -28,6 +29,7 @@ FROM node:20-alpine AS node_build
 WORKDIR /app
 COPY package.json package-lock.json* yarn.lock* ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
@@ -39,6 +41,7 @@ FROM dunglas/frankenphp:1-php8.3 AS runtime
 
 WORKDIR /app
 
+# install php extensions untuk octane
 RUN install-php-extensions \
     pdo_mysql \
     intl \
@@ -51,17 +54,18 @@ RUN install-php-extensions \
     pcntl \
     posix
 
+# copy app & built assets
 COPY . .
 COPY --from=composer_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
+# laravel caches (opsional)
 RUN php artisan optimize --no-interaction || true
 RUN php artisan storage:link || true
-RUN php artisan event:cache || true
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+RUN php artisan config:cache || true
+RUN php artisan route:cache || true
+RUN php artisan view:cache || true
 
-ENTRYPOINT []
+ENTRYPOINT ["/usr/bin/php"]
 
-CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
+CMD ["artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
