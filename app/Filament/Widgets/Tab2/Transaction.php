@@ -4,12 +4,16 @@ namespace App\Filament\Widgets\Tab2;
 
 use App\Enums\OrderPaymentTypeEnum;
 use App\Enums\OrderStatusEnum;
+use App\Exports\DashboardOrderCustomExport;
 use App\Filament\Exports\DashboardOrderExporter;
+use App\Jobs\ExportDashboardTransactionJob;
 use App\Models\Order;
-use Filament\Tables\Actions\ExportAction;
+use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class Transaction extends BaseWidget
 {
@@ -54,9 +58,41 @@ class Transaction extends BaseWidget
                     ->label('Jenis Pembayaran')
             ])
             ->headerActions([
-                ExportAction::make()
-                    ->exporter(DashboardOrderExporter::class)
-                    ->fileDisk('export')
+                Action::make('export')
+                    ->label('Ekspor Transaksi')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->modalHeading('Ekspor Transaksi Berdasarkan Tanggal')
+                    ->modalSubmitActionLabel('Ekspor')
+                    ->form([
+                        DateRangePicker::make('date_range')
+                            ->label('Rentang Tanggal')
+                            ->required()
+                    ])
+                    ->action(function ($data) {
+                        // raw example: "09/01/2026 - 15/01/2026"
+                        $range = $data['date_range'];
+
+                        // split by dash
+                        [$start, $end] = array_map('trim', explode('-', $range));
+
+                        // normalize using Carbon
+                        $dateFrom = \Carbon\Carbon::createFromFormat('d/m/Y', $start)->format('Y-m-d');
+                        $dateTo   = \Carbon\Carbon::createFromFormat('d/m/Y', $end)->format('Y-m-d');
+
+                        $filters = [
+                            'date_from' => $dateFrom,
+                            'date_to' => $dateTo,
+                        ];
+
+                        $user = auth()->user();
+                        ExportDashboardTransactionJob::dispatch($user, $filters);
+
+                        Notification::make()
+                            ->title('Export Sedang Diproses')
+                            ->success()
+                            ->body('File akan tersedia setelah proses selesai.')
+                            ->send();
+                    })
             ]);
     }
 }
