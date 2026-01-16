@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use App\Jobs\DeleteExportFileJob;
+use Illuminate\Support\Facades\File;
 
 class ExportDashboardTransactionJob implements ShouldQueue
 {
@@ -33,12 +34,18 @@ class ExportDashboardTransactionJob implements ShouldQueue
         $filters = $this->filters ?? [];
 
         $filename = $user->id . '_export_transactions_' . now()->format('Ymd_His') . '.xlsx';
-        $relativePath = "exports/{$user->id}/{$filename}";
+        $relativePath = "exports/{$user->id}";
+        $absoluteDir = storage_path("app/{$relativePath}");
 
-        Storage::disk('local')->makeDirectory("exports/{$user->id}");
+        // Buat dir via File Facade (lebih menghormati chmod)
+        if (! File::exists($absoluteDir)) {
+            // umask(0000);
+            File::makeDirectory($absoluteDir, 0755, true, true);
+            // chmod($absoluteDir, 0755); // force final mode
+        }
 
         // Export data ke storage
-        Excel::store(new DashboardOrderCustomExport($filters), $relativePath, 'local');
+        Excel::store(new DashboardOrderCustomExport($filters), "{$relativePath}/{$filename}", 'local');
 
         // Signed URL untuk download (berlaku 7 hari)
         $signedUrl = URL::temporarySignedRoute(
