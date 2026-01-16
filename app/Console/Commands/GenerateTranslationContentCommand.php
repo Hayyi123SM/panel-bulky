@@ -72,8 +72,7 @@ class GenerateTranslationContentCommand extends Command
 
     public function generateProduct(): void
     {
-        $products =Product::whereNameTrans(null)->get();
-        dd($products);
+        $products = Product::whereNameTrans(null)->get();
 
         Product::whereNull('name_trans')->get()->each(function ($product) {
             $product->update([
