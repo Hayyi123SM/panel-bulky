@@ -6,8 +6,10 @@ use App\Models\Order;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class DashboardOrderCustomExport implements FromQuery, WithHeadings, WithMapping
+class DashboardOrderCustomExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting
 {
     protected array $filters;
 
@@ -55,10 +57,24 @@ class DashboardOrderCustomExport implements FromQuery, WithHeadings, WithMapping
         $buyer = $order->user->name ?? '-';
 
         // Palet (multiple mapping)
-        $palets = $order->items->pluck('product.name_trans')->map(fn($p) => $p['id'] ?? '')->implode(', ');
+        $palets = $order->items
+            ->map(
+                fn($item) =>
+                $item->product?->getTranslation('name_trans', 'id')
+                    ?? $item->product?->name
+                    ?? '-' // Fallback "-" karena data produk mungkin sudah dihapus
+            )
+            ->implode(', ');
 
         // Kategori
-        $kategori = $order->items->pluck('product.productCategory.name_trans')->map(fn($p) => $p['id'] ?? '')->implode(', ');
+        $kategori = $order->items
+            ->map(
+                fn($i) =>
+                $i->product?->productCategory?->getTranslation('name_trans', 'id')
+                    ?? $i->product?->productCategory?->name
+                    ?? '-'
+            )
+            ->implode(', ');
 
         // Harga item masing-masing
         $harga = $order->items->pluck('price')->implode(', ');
@@ -86,12 +102,21 @@ class DashboardOrderCustomExport implements FromQuery, WithHeadings, WithMapping
             $buyer,
             $palets,
             $kategori,
-            number_format($harga, 0, ',', '.'),
-            number_format($totalHarga, 0, ',', '.'),
-            number_format($ongkir, 0, ',', '.'),
-            number_format($diskon, 0, ',', '.'),
+            $harga,
+            $totalHarga,
+            $ongkir,
+            $diskon,
             $tanggal,
             $jenisPembayaran,
+        ];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'E' => '#,##0', // Total Harga
+            'F' => '#,##0', // Ongkir
+            'G' => '#,##0', // Diskon
         ];
     }
 }
