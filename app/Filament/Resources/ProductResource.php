@@ -319,7 +319,7 @@ class ProductResource extends Resource
 
                 Tables\Columns\TextColumn::make('weight_kg')
                     ->label('Berat')
-                    ->formatStateUsing(fn($state) => $state !== null ? number_format($state, 2, ',', '.') . ' kg' : '-')
+                    ->formatStateUsing(fn($state) => $state !== null ? ((is_numeric($state) && floor($state) == $state) ? (int) $state : number_format($state, 2, ',', '.')) . ' kg' : '-')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('volume_m3')
