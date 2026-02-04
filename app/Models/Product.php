@@ -47,6 +47,10 @@ class Product extends Model
         'note_discrepancy',
         'vehicle_type_id',
         'is_new',
+        'length_cm',
+        'width_cm',
+        'height_cm',
+        'weight_kg',
     ];
 
     public function warehouse(): BelongsTo
@@ -103,7 +107,37 @@ class Product extends Model
             'name_trans' => 'json',
             'description_trans' => 'json',
             'note_discrepancy' => 'integer',
+            'length_cm' => 'float',
+            'width_cm' => 'float',
+            'height_cm' => 'float',
+            'weight_kg' => 'float',
         ];
+    }
+
+    /**
+     * Volume in cubic centimeters (cm^3). Returns null if any dimension is missing.
+     */
+    public function getVolumeCm3Attribute(): ?float
+    {
+        if ($this->length_cm === null || $this->width_cm === null || $this->height_cm === null) {
+            return null;
+        }
+
+        return (float) ($this->length_cm * $this->width_cm * $this->height_cm);
+    }
+
+    /**
+     * Volume in cubic meters (m^3). Returns null if any dimension is missing.
+     */
+    public function getVolumeM3Attribute(): ?float
+    {
+        $cm3 = $this->getVolumeCm3Attribute();
+
+        if ($cm3 === null) {
+            return null;
+        }
+
+        return $cm3 / 1_000_000;
     }
 
     public function getActivitylogOptions(): LogOptions

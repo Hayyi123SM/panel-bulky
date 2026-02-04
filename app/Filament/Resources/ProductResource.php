@@ -214,6 +214,51 @@ class ProductResource extends Resource
                         //                            ->allowHtml()
                         //                            ->native(false)
                     ]),
+
+                Forms\Components\Section::make('Dimensi & Berat')
+                    ->schema([
+                        Forms\Components\TextInput::make('length_cm')
+                            ->label('Panjang')
+                            ->numeric()
+                            ->suffix('cm')
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->placeholder('Panjang dalam cm')
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('width_cm')
+                            ->label('Lebar')
+                            ->numeric()
+                            ->suffix('cm')
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->placeholder('Lebar dalam cm')
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('height_cm')
+                            ->label('Tinggi')
+                            ->numeric()
+                            ->suffix('cm')
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->placeholder('Tinggi dalam cm')
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('weight_kg')
+                            ->label('Berat')
+                            ->numeric()
+                            ->suffix('kg')
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->placeholder('Berat dalam kg')
+                            ->reactive(),
+
+                        Forms\Components\Placeholder::make('volume_m3')
+                            ->label('Volume (m³)')
+                            ->content(fn($get) => ($get('length_cm') && $get('width_cm') && $get('height_cm')) ? number_format((($get('length_cm') * $get('width_cm') * $get('height_cm')) / 1000000), 6, ',', '.') . ' m³' : '-')
+                            ->columnSpanFull()
+                            ->helperText('Volume dihitung otomatis dari panjang × lebar × tinggi (cm).'),
+                    ])->columns(2),
             ])->inlineLabel()->columns(1);
     }
 
@@ -270,6 +315,16 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga Produk')
                     ->formatStateUsing(fn($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('weight_kg')
+                    ->label('Berat')
+                    ->formatStateUsing(fn($state) => $state !== null ? number_format($state, 2, ',', '.') . ' kg' : '-')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('volume_m3')
+                    ->label('Volume')
+                    ->formatStateUsing(fn($state) => $state !== null ? number_format($state, 6, ',', '.') . ' m³' : '-')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total_quantity')
