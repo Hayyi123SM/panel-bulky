@@ -77,6 +77,28 @@ class ViewProduct extends ViewRecord
                         TextEntry::make('productStatus.status')->label('Status'),
                         TextEntry::make('note_discrepancy')->label('Catatan perbedaan')
                             ->formatStateUsing(fn($state) => $state !== null ? $state . '%' : '-'),
+                    ]),
+                Section::make('Dimensi & Berat')
+                    ->schema([
+                        TextEntry::make('length_cm')
+                            ->label('Panjang')
+                            ->formatStateUsing(fn($state) => $state !== null ? ((is_numeric($state) && floor($state) == $state) ? (int) $state : number_format($state, 2, ',', '.')) . ' cm' : '-'),
+
+                        TextEntry::make('width_cm')
+                            ->label('Lebar')
+                            ->formatStateUsing(fn($state) => $state !== null ? ((is_numeric($state) && floor($state) == $state) ? (int) $state : number_format($state, 2, ',', '.')) . ' cm' : '-'),
+
+                        TextEntry::make('height_cm')
+                            ->label('Tinggi')
+                            ->formatStateUsing(fn($state) => $state !== null ? ((is_numeric($state) && floor($state) == $state) ? (int) $state : number_format($state, 2, ',', '.')) . ' cm' : '-'),
+
+                        TextEntry::make('weight_kg')
+                            ->label('Berat')
+                            ->formatStateUsing(fn($state) => $state !== null ? ((is_numeric($state) && floor($state) == $state) ? (int) $state : number_format($state, 2, ',', '.')) . ' kg' : '-'),
+
+                        TextEntry::make('volume_m3')
+                            ->label('Volume')
+                            ->formatStateUsing(fn($state) => $state !== null ? number_format($state, 6, ',', '.') . ' m³' : '-'),
                     ])
             ])->inlineLabel()->columns(1);
     }
