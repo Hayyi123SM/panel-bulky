@@ -108,7 +108,7 @@ class GeoRegionService
         // Ambil alamat lengkap (formatted_address)
         $result['full_address'] = $data['results'][0]['formatted_address'] ?? null;
 
-        $ForwarderFTL = [
+        $ForwarderLTL = [
             // Bali
             'bali',
 
@@ -175,12 +175,12 @@ class GeoRegionService
 
         $province = strtolower($result['province'] ?? '');
 
-        if (in_array($province, $ForwarderFTL)) {
+        if (in_array($province, $ForwarderLTL)) {
             $result['transport_type'] = 3;
-            $result['load_type'] = 4;
+            $result['load_type'] = 5;
         } else {
             $result['transport_type'] = 1;
-            $result['load_type'] = 1;
+            $result['load_type'] = 2;
         }
 
 

@@ -526,10 +526,72 @@ class CartController extends Controller
         // Logic palet
         if ($packagingType === 'palet') {
             if (!$isJabodetabek) {
-                return response()->json([
-                    'status' => 'unavailable_address',
-                    'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek & Bandung'
-                ], 422);
+                // return response()->json([
+                //     'status' => 'unavailable_address',
+                //     'message' => 'Pengiriman palet hanya tersedia untuk alamat di Jabodetabek & Bandung'
+                // ], 422);
+
+                $location = $geoService->getLocationFromGoogleMaps($cart->address->latitude, $cart->address->longitude);
+                $transportType = $location['transport_type'] ?? null;
+                $loadType = $location['load_type'] ?? null;
+
+                $city = preg_replace([
+                    '/^(Kota|Kabupaten)\s+/i',
+                    '/\s+(City|Regency)$/i'
+                ], '', $location['city']);
+                $apiForwarder = app(ApiRequest::class);
+                $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
+                    'city_name' => $city
+                ]);
+                if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
+                    return response()->json([
+                        'status' => 'unavailable_address',
+                        'message' => 'Kota tujuan tidak tersedia untuk pengiriman ' . str_replace('_', ' ', $packagingType) . '. Silakan pilih kota lain.'
+                    ], 422);
+                }
+
+                $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
+                    "origin_city" => 208,
+                    "destination_city" => $destination['data'][0]['item_id'],
+                    "destination_subdistrict" => 0,
+                    "transport_type" => $transportType,
+                    "load_type" => $loadType,
+                    "service_type" => 1,
+                    "vehicle_type" => 0 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
+                ]);
+                return $costs;
+                if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
+                    $cost = $costs['data'][0];
+                    if (isset($cost['tariff_idr']) && !is_numeric($cost['tariff_idr'])) {
+                        $cart->shipping_cost = 0;
+                        $cart->shipping_provider = null;
+                        $cart->save();
+                        return response()->json([
+                            'status' => 'unavailable_address',
+                            'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
+                        ], 422);
+                    }
+                    $cart->shipping_cost = $cost['tariff_idr'];
+                    $cart->shipping_provider = 'Forwarder';
+                    $cart->requirement_provider = $cost;
+                    $cart->save();
+                    return response()->json([
+                        'data' => [
+                            'total_cost' => [
+                                'value' => $cost['tariff_idr'],
+                                'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
+                            ]
+                        ]
+                    ]);
+                } else {
+                    $cart->shipping_cost = 0;
+                    $cart->shipping_provider = null;
+                    $cart->save();
+                    return response()->json([
+                        'status' => 'unavailable_address',
+                        'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
+                    ], 422);
+                }
             }
             // ...existing code Deliveree
             // selected vehicle for production
