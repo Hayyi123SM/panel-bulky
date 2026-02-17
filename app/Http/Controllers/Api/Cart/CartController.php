@@ -559,7 +559,7 @@ class CartController extends Controller
                     "service_type" => 1,
                     "vehicle_type" => 0 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
-                return $costs;
+
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
                     if (isset($cost['tariff_idr']) && !is_numeric($cost['tariff_idr'])) {
