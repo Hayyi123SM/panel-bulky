@@ -550,19 +550,51 @@ class CartController extends Controller
                     ], 422);
                 }
 
-                $costs = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
-                    "origin_city" => 208,
+                $cargoDetails = $selectedItems->map(function ($item) {
+                    return [
+                        "qty" => $item->quantity,
+                        "length" => $item->product->length_cm, // Dummy data, sesuaikan dengan kebutuhan
+                        "width" => $item->product->width_cm,  // Dummy data, sesuaikan dengan kebutuhan
+                        "height" => $item->product->height_cm, // Dummy data, sesuaikan dengan kebutuhan
+                        "weight" => $item->product->weight_kg, // Contoh perhitungan berat
+                        "packaging_id" => 1, // Dummy data, sesuaikan dengan kebutuhan
+                        "cargo_id" => 155,
+                        "cargo_description" => $item->product->name,
+                    ];
+                })->toArray();
+
+                $costs = $apiForwarder->post('/calculatepricing', 'CALCULATEPRICING', [
+                    "origin_city" => 13,
                     "destination_city" => $destination['data'][0]['item_id'],
                     "destination_subdistrict" => 0,
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,
-                    "vehicle_type" => 0 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
+                    "vehicle_type" => 0, // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
+                    "move_type" => 1,
+                    "lcl_basis" => 1,
+                    "cargo_details" => $cargoDetails
                 ]);
 
+                // return response()->json([
+                //     'costs' => $costs,
+                //     'response' => [
+                //         "origin_city" => 13,
+                //         "destination_city" => $destination['data'][0]['item_id'],
+                //         "destination_subdistrict" => 0,
+                //         "transport_type" => $transportType,
+                //         "load_type" => $loadType,
+                //         "service_type" => 1,
+                //         "vehicle_type" => 0, // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
+                //         "move_type" => 1,
+                //         "lcl_basis" => 1,
+                //         "cargo_details" => $cargoDetails
+                //     ]
+                // ]);
+
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
-                    $cost = $costs['data'][0];
-                    if (isset($cost['tariff_idr']) && !is_numeric($cost['tariff_idr'])) {
+                    $cost = $costs['data'];
+                    if (isset($cost['total_price']) && !is_numeric($cost['total_price'])) {
                         $cart->shipping_cost = 0;
                         $cart->shipping_provider = null;
                         $cart->save();
@@ -571,15 +603,15 @@ class CartController extends Controller
                             'message' => 'Alamat pengiriman tidak terjangkau. Silakan cek kembali alamat Anda.'
                         ], 422);
                     }
-                    $cart->shipping_cost = $cost['tariff_idr'];
+                    $cart->shipping_cost = $cost['total_price'];
                     $cart->shipping_provider = 'Forwarder';
                     $cart->requirement_provider = $cost;
                     $cart->save();
                     return response()->json([
                         'data' => [
                             'total_cost' => [
-                                'value' => $cost['tariff_idr'],
-                                'formatted' => $cost['currency'] . ' ' . number_format($cost['tariff_idr'], 0, ',', '.')
+                                'value' => $cost['total_price'],
+                                'formatted' => 'Rp ' . number_format($cost['total_price'], 0, ',', '.')
                             ]
                         ]
                     ]);
