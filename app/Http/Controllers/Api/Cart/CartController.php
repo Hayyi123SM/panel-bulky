@@ -627,16 +627,16 @@ class CartController extends Controller
             }
             // ...existing code Deliveree
             // selected vehicle for production
-            $selectedVehicle = match (true) {
-                $selectedCount >= 5 && $selectedCount <= 8 => 2703, // CDE Box Liquid8
-                $selectedCount >= 9 => 2723, // CDD Box Liquid8
-                default => 2701, // van liquid8
-            };
             // $selectedVehicle = match (true) {
-            //     $selectedCount >= 5 && $selectedCount <= 8 => 14,
-            //     $selectedCount >= 9 => 75,
-            //     default => 76,
+            //     $selectedCount >= 5 && $selectedCount <= 8 => 2703, // CDE Box Liquid8
+            //     $selectedCount >= 9 => 2723, // CDD Box Liquid8
+            //     default => 2701, // van liquid8
             // };
+            $selectedVehicle = match (true) {
+                $selectedCount >= 5 && $selectedCount <= 8 => 14,
+                $selectedCount >= 9 => 75,
+                default => 76,
+            };
             $data = [
                 'time_type' => 'now',
                 'vehicle_type_id' => $selectedVehicle,
