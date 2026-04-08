@@ -550,6 +550,16 @@ class CartController extends Controller
                     ], 422);
                 }
 
+                $costCBM = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
+                    "origin_city" => 208,
+                    "destination_city" => $destination['data'][0]['item_id'],
+                    "destination_subdistrict" => 0,
+                    "transport_type" => $transportType,
+                    "load_type" => $loadType,
+                    "service_type" => 1,
+                    "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
+                ]);
+
                 $cargoDetails = $selectedItems->map(function ($item) {
                     return [
                         "qty" => $item->quantity,
@@ -605,7 +615,7 @@ class CartController extends Controller
                     }
                     $cart->shipping_cost = $cost['total_price'];
                     $cart->shipping_provider = 'Forwarder';
-                    $cart->requirement_provider = $cost;
+                    $cart->requirement_provider = $costCBM['data'][0] ?? null;
                     $cart->save();
                     return response()->json([
                         'data' => [
