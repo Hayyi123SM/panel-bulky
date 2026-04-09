@@ -643,9 +643,9 @@ class CartController extends Controller
             //     default => 2701, // van liquid8
             // };
             $selectedVehicle = match (true) {
-                $selectedCount >= 5 && $selectedCount <= 8 => 14,
-                $selectedCount >= 9 => 75,
-                default => 76,
+                $selectedCount >= 5 && $selectedCount <= 8 => 36,
+                $selectedCount >= 9 => 77,
+                default => 14,
             };
             $data = [
                 'time_type' => 'now',
