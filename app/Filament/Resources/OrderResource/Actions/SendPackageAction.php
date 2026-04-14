@@ -176,7 +176,7 @@ class SendPackageAction extends Action
                         });
                         $payload = [
                             "transportid" => $requirementProvider['transport_id'], // Mandatory [Ambil dari API Tariff -> Land Transport = 3]
-                            // "loadid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Land - FTL = 4]
+                            "loadid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Land - FTL = 4]
                             "serviceid" => $requirementProvider['servicetype_id'], // Mandatory [Ambil dari API Tariff -> Reguler = 1]
                             "origincityid" => $requirementProvider['origin_cityid'], // Mandatory [Ambil dari API City]
                             "destinationcityid" => $requirementProvider['destination_cityid'], // Mandatory [Ambil dari API City]
