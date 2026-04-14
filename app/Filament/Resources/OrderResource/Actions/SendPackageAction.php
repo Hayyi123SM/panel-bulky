@@ -12,6 +12,7 @@ use App\Services\GeoRegion\GeoRegionService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Facades\Log;
 
 class SendPackageAction extends Action
 {
@@ -83,14 +84,14 @@ class SendPackageAction extends Action
                     };
 
                     if ($requirementProvider['transport_id'] === 1) { // Sea Freight
-                        $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', [
+                        $payload = [
                             "transportid" => $requirementProvider['transport_id'], // Mandatory [Ambil dari API Tariff -> Sea Freight = 1]
                             "movetypeid" => "1", // Mandatory [Selalu di-input -> DOOR/DOOR = 1]
                             "loadtypeid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Sea - FCL = 1]
                             "servicetypeid" => $requirementProvider['servicetype_id'], // Mandatory [Ambil dari API Tariff -> Reguler = 1]
                             "origincityid" => $requirementProvider['origin_cityid'], // Mandatory [Ambil dari API City]
                             "destinationcityid" => $requirementProvider['destination_cityid'], // Mandatory [Ambil dari API City]
-                            "lclbasisid" => "0", // Mandatory [Ambil dari API Tariff -> LCLBasisId]
+                            "lclbasisid" => "1", // Mandatory [Ambil dari API Tariff -> LCLBasisId]
                             "cargoreadydate" => "", // Optional
                             "shipper" => "BULKY",
                             "shipperaddress" => $warehouse->address,
@@ -151,9 +152,12 @@ class SendPackageAction extends Action
                                     "cargodesc" => ""
                                 ]
                             ]
-                        ]);
+                        ];
+                        $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', $payload);
+                        Log::info('Forwarder Sea Freight Booking Payload', $payload);
+                        Log::info('Forwarder Sea Freight Booking Response', $booking);
                     } else { // Land Transport
-                        $booking = $apiForwarder->post('/createbookingland', 'CREATEBOOKINGLAND', [
+                        $payload = [
                             "transportid" => $requirementProvider['transport_id'], // Mandatory [Ambil dari API Tariff -> Land Transport = 3]
                             "loadid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Land - FTL = 4]
                             "serviceid" => $requirementProvider['servicetype_id'], // Mandatory [Ambil dari API Tariff -> Reguler = 1]
@@ -216,7 +220,10 @@ class SendPackageAction extends Action
                                     "totalweight" => "6000",
                                 ]
                             ]
-                        ]);
+                        ];
+                        $booking = $apiForwarder->post('/createbookingland', 'CREATEBOOKINGLAND', $payload);
+                        Log::info('Forwarder Land Transport Booking Payload', $payload);
+                        Log::info('Forwarder Land Transport Booking Response', $booking);
                     }
                     break;
                 default:
