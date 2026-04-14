@@ -560,18 +560,20 @@ class CartController extends Controller
                     "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
 
-                $cargoDetails = $selectedItems->map(function ($item) {
-                    return [
-                        "qty" => $item->quantity,
-                        "length" => $item->product->length_cm, // Dummy data, sesuaikan dengan kebutuhan
-                        "width" => $item->product->width_cm,  // Dummy data, sesuaikan dengan kebutuhan
-                        "height" => $item->product->height_cm, // Dummy data, sesuaikan dengan kebutuhan
-                        "weight" => $item->product->weight_kg, // Contoh perhitungan berat
-                        "packaging_id" => 1, // Dummy data, sesuaikan dengan kebutuhan
-                        "cargo_id" => 155,
-                        "cargo_description" => $item->product->name,
-                    ];
-                })->toArray();
+                $cargoDetails = [
+                    "cargo_details" => $selectedItems->map(function ($item) {
+                        return [
+                            "qty" => (int) $item->quantity,
+                            "length" => (float) $item->product->length_cm,
+                            "width" => (float) $item->product->width_cm,
+                            "height" => (float) $item->product->height_cm,
+                            "weight" => (float) $item->product->weight_kg,
+                            "packaging_id" => 1, // Pastikan ini sesuai dengan ID dari API Packaging
+                            "cargo_id" => 155,    // Pastikan ini sesuai dengan ID dari API CargoCommodity
+                            "cargo_description" => $item->product->name,
+                        ];
+                    })->values()->toArray()
+                ];
 
                 $costs = $apiForwarder->post('/calculatepricing', 'CALCULATEPRICING', [
                     "origin_city" => 13,
@@ -583,10 +585,11 @@ class CartController extends Controller
                     "vehicle_type" => 0, // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                     "move_type" => 1,
                     "lcl_basis" => 1,
-                    "cargo_details" => $cargoDetails
+                    "cargo_details" => $cargoDetails['cargo_details']
                 ]);
 
                 // return response()->json([
+                //     'cargorDetails' => $cargoDetails,
                 //     'costs' => $costs,
                 //     'response' => [
                 //         "origin_city" => 13,
@@ -598,7 +601,7 @@ class CartController extends Controller
                 //         "vehicle_type" => 0, // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 //         "move_type" => 1,
                 //         "lcl_basis" => 1,
-                //         "cargo_details" => $cargoDetails
+                //         "cargo_details" => $cargoDetails['cargo_details']
                 //     ]
                 // ]);
 

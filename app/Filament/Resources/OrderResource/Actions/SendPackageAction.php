@@ -39,7 +39,6 @@ class SendPackageAction extends Action
         $this->action(function (Order $record) {
             $warehouseIds = $record->items->pluck('product.warehouse_id')->unique();
             $warehouse = Warehouse::find($warehouseIds->first());
-
             switch ($record->shipping->shipping_provider) {
                 case 'Deliveree':
                     $booking = Deliveree::createDelivery([
@@ -84,6 +83,21 @@ class SendPackageAction extends Action
                     };
 
                     if ($requirementProvider['transport_id'] === 1) { // Sea Freight
+                        $itemproducts = $record->items->pluck('product')->map(function ($product) {
+                            return [
+                                "qty" => "1",
+                                "containertypeid" => "63", // 20 DC
+                                "packageid" => "7",
+                                "length" => $product->length_cm,
+                                "width" => $product->width_cm,
+                                "height" => $product->height_cm,
+                                // "volume" => round(($product->length_cm * $product->width_cm * $product->height_cm) / 1_000_000, 2), // Convert cm3 to m3
+                                "volume" => round($product->length_cm * $product->width_cm * $product->height_cm, 2), // Convert cm3
+                                "weight" => $product->weight_kg,
+                                "cargoid" => "78",
+                                "cargodesc" => ""
+                            ];
+                        });
                         $payload = [
                             "transportid" => $requirementProvider['transport_id'], // Mandatory [Ambil dari API Tariff -> Sea Freight = 1]
                             "movetypeid" => "1", // Mandatory [Selalu di-input -> DOOR/DOOR = 1]
@@ -138,28 +152,31 @@ class SendPackageAction extends Action
                             "commodityamount" => $record->total_price,
                             "insuranceid" => "1",
                             "premiamount" => $record->total_price * (0.2 / 100), // 0.2% adalah insurance transport SEA
-                            "bookingdetail" => [
-                                [
-                                    "qty" => "1",
-                                    "containertypeid" => "63", // 20 DC
-                                    "packageid" => "7",
-                                    "length" => "530",
-                                    "width" => "200",
-                                    "height" => "210",
-                                    "volume" => "22.3",
-                                    "weight" => "6000",
-                                    "cargoid" => "78",
-                                    "cargodesc" => ""
-                                ]
-                            ]
+                            "bookingdetail" => $itemproducts->toArray()
                         ];
                         $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', $payload);
                         Log::info('Forwarder Sea Freight Booking Payload', $payload);
                         Log::info('Forwarder Sea Freight Booking Response', $booking);
                     } else { // Land Transport
+                        $itemproducts = $record->items->pluck('product')->map(function ($product) {
+                            return [
+                                "packaging" => "7", // Palet
+                                "commodity" => "78", // null
+                                "cargodesc" => $product->name,
+                                "qty" => "1",
+                                "length" => $product->length_cm,
+                                "width" => $product->width_cm,
+                                "height" => $product->height_cm,
+                                // "volume" => round(($product->length_cm * $product->width_cm * $product->height_cm) / 1_000_000, 2), // Convert cm3 to m3
+                                "volume" => round($product->length_cm * $product->width_cm * $product->height_cm, 2), // Convert cm3
+                                "totalvolume" => round($product->length_cm * $product->width_cm * $product->height_cm, 2), // Convert cm3
+                                "weight" => $product->weight_kg,
+                                "totalweight" => $product->weight_kg,
+                            ];
+                        });
                         $payload = [
                             "transportid" => $requirementProvider['transport_id'], // Mandatory [Ambil dari API Tariff -> Land Transport = 3]
-                            "loadid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Land - FTL = 4]
+                            // "loadid" => $requirementProvider['loadtype_id'], // Mandatory [Ambil dari API Tariff -> Land - FTL = 4]
                             "serviceid" => $requirementProvider['servicetype_id'], // Mandatory [Ambil dari API Tariff -> Reguler = 1]
                             "origincityid" => $requirementProvider['origin_cityid'], // Mandatory [Ambil dari API City]
                             "destinationcityid" => $requirementProvider['destination_cityid'], // Mandatory [Ambil dari API City]
@@ -205,21 +222,7 @@ class SendPackageAction extends Action
                                     "detail" => $record->shipping_address
                                 ]
                             ],
-                            "datadetail" => [
-                                [
-                                    "packaging" => "7", // Palet
-                                    "commodity" => "78", // null
-                                    "cargodesc" => "",
-                                    "qty" => 1,
-                                    "length" => "530",
-                                    "width" => "200",
-                                    "height" => "210",
-                                    "volume" => "22.3",
-                                    "totalvolume" => "22.3",
-                                    "weight" => "6000",
-                                    "totalweight" => "6000",
-                                ]
-                            ]
+                            "datadetail" => $itemproducts->toArray()
                         ];
                         $booking = $apiForwarder->post('/createbookingland', 'CREATEBOOKINGLAND', $payload);
                         Log::info('Forwarder Land Transport Booking Payload', $payload);
