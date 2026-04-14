@@ -140,7 +140,7 @@ class SendPackageAction extends Action
                             "bookingdetail" => [
                                 [
                                     "qty" => "1",
-                                    "containertypeid" => "15", // 20 DC
+                                    "containertypeid" => "63", // 20 DC
                                     "packageid" => "7",
                                     "length" => "530",
                                     "width" => "200",
