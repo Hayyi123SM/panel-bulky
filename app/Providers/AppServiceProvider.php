@@ -20,6 +20,9 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use Midtrans\Config;
 use Xendit\Configuration;
+use App\Services\WMS\Contracts\ProductDropdownServiceInterface;
+use App\Services\WMS\DummyProductDropdownService;
+use App\Services\WMS\WMSProductDropdownService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,6 +32,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         //        $this->app->bind(Authenticatable::class, Admin::class);
+        $this->app->bind(ProductDropdownServiceInterface::class, function ($app) {
+            $mode = config('wms.mode', 'dummy');
+            if ($mode === 'real') {
+                return new WMSProductDropdownService();
+            }
+            return new DummyProductDropdownService();
+        });
     }
 
     /**

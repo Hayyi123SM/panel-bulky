@@ -6,6 +6,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Product;
 use App\Services\Deliveree\Deliveree;
+use App\Services\WMS\Contracts\ProductDropdownServiceInterface;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
@@ -17,6 +18,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
+use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Http;
 
 class ProductResource extends Resource
 {
@@ -30,6 +36,7 @@ class ProductResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $isEdit = $form->getOperation() === 'edit';
         return $form
             ->schema([
                 Forms\Components\Section::make('Foto Produk')
@@ -48,15 +55,94 @@ class ProductResource extends Resource
                     ]),
                 Forms\Components\Section::make('Informasi Utama')
                     ->schema([
+                        // Dropdown template hanya saat create
+                        ...(!$isEdit ? [
+                            Forms\Components\Select::make('product_template_id')
+                                ->label('Template Produk')
+                                ->options(fn() => app(ProductDropdownServiceInterface::class)->getDropdownOptions())
+                                ->nullable()
+                                ->native(false)
+                                ->searchable()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state) {
+                                        $service = app(ProductDropdownServiceInterface::class);
+                                        $detail = $service->getDropdownDetail($state);
+                                        if (!empty($detail)) {
+                                            $set('name_trans', $detail['name_document'] ?? '');
+                                            $set('id_pallet', $detail['id'] ?? '');
+                                            $set('price_before_discount', $detail['old_price'] ?? '');
+                                            $set('price', $detail['new_price'] ?? '');
+                                            $set('length_cm', $detail['dimension']['length'] ?? '');
+                                            $set('width_cm', $detail['dimension']['width'] ?? '');
+                                            $set('height_cm', $detail['dimension']['height'] ?? '');
+                                            $set('weight_kg', $detail['dimension']['weight'] ?? '');
+                                            $set('total_quantity', $detail['total_quantity'] ?? '');
+                                            $set('packaging_type', $detail['packaging_type'] ?? 'palet');
+                                            $set('pdf_input_mode', 'url');
+                                            $pdfUrl = $detail['pdf_url'] ?? '';
+                                            $set('pdf_url', $pdfUrl);
+                                            $url = trim($pdfUrl);
+                                            if (preg_match('/(\\.pdf|\/pdf)$/i', $url)) {
+                                                try {
+                                                    $response = \Illuminate\Support\Facades\Http::timeout(5)->head($url);
+                                                    if ($response->failed() || $response->status() !== 200) {
+                                                        $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ File PDF tidak ditemukan atau tidak dapat diakses.<br><small>Pastikan link benar dan file dapat diakses publik (status 200).</small></span>');
+                                                        return;
+                                                    }
+                                                    $contentType = strtolower($response->header('Content-Type', ''));
+                                                    $contentLength = (int) $response->header('Content-Length', 0);
+                                                    if (!str_contains($contentType, 'application/pdf')) {
+                                                        $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ Link tidak mengarah ke file PDF asli.<br><small>Content-Type: ' . e($contentType) . '</small></span>');
+                                                        return;
+                                                    }
+                                                    if ($contentLength <= 0) {
+                                                        $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ File PDF kosong atau tidak ditemukan.<br><small>Ukuran file 0 byte.</small></span>');
+                                                        return;
+                                                    }
+                                                    $set('pdf_status_feedback', '<span style="color:#16a34a;font-weight:bold;">✔️ Link PDF valid</span> — <a href="' . e($url) . '" target="_blank" style="color: #2563eb; text-decoration:underline;">Klik untuk buka PDF</a>');
+                                                } catch (\Throwable $e) {
+                                                    $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ Terjadi kesalahan saat memeriksa link PDF.<br><small>Periksa kembali URL atau koneksi internet Anda.</small></span>');
+                                                }
+                                            } else if (!empty($url)) {
+                                                $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ URL harus diakhiri .pdf</span>');
+                                            } else {
+                                                $set('pdf_status_feedback', 'Belum ada file PDF.');
+                                            }
+                                        }
+                                    } else {
+                                        $set('name_trans', '');
+                                        $set('price_before_discount', '');
+                                        $set('price', '');
+                                        $set('total_quantity', '');
+                                        $set('packaging_type', 'palet');
+                                        $set('length_cm', '');
+                                        $set('width_cm', '');
+                                        $set('height_cm', '');
+                                        $set('weight_kg', '');
+                                        $set('pdf_input_mode', 'upload');
+                                        $set('pdf_url', '');
+                                        $set('pdf_status_feedback', 'Belum ada file PDF.');
+                                    }
+                                })
+                                ->helperText('Pilih template produk untuk autofill data (opsional)'),
+                        ] : []),
                         Forms\Components\TextInput::make('name_trans')
                             ->label('Nama Produk')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Product Name'),
+                            ->placeholder('Nama Produk'),
                         Forms\Components\TextInput::make('id_pallet')
                             ->label('ID Pallet')
                             ->maxLength(255)
-                            ->placeholder('Product Pallet'),
+                            ->placeholder('Product Pallet')
+                            ->disabled($isEdit)
+                            ->readonly(fn($get) => !$isEdit && !empty($get('product_template_id')))
+                            ->extraAttributes(fn($get) => !$isEdit && !empty($get('product_template_id')) ? [
+                                'style' => 'background-color:#f3f4f6;pointer-events:none;color:#6b7280;',
+                                'tabindex' => '-1',
+                            ] : [])
+                            ->helperText(fn($get) => !$isEdit && !empty($get('product_template_id')) ? 'Field ini diisi otomatis dari template dan tidak bisa diubah.' : ($isEdit ? 'Tidak dapat diubah saat edit.' : '')),
                         Forms\Components\TextInput::make('price_before_discount')
                             ->label('Harga Sebelum Diskon')
                             ->required()
@@ -90,13 +176,112 @@ class ProductResource extends Resource
                             ->reactive()
                             ->required(),
                     ]),
-
                 Forms\Components\Section::make('Informasi Tambahan')
                     ->schema([
-                        Forms\Components\FileUpload::make('pdf_file')
-                            ->label('PDF File')
-                            ->acceptedFileTypes(['application/pdf'])
-                            ->maxSize(1000),
+                        // Pada edit, hanya FileUpload PDF
+                        ...($isEdit ? [
+                            FileUpload::make('pdf_file')
+                                ->label('File PDF')
+                                ->acceptedFileTypes(['application/pdf'])
+                                ->maxSize(1000)
+                                ->required()
+                        ] : [
+                            Forms\Components\Radio::make('pdf_input_mode')
+                                ->label('Mode Input PDF')
+                                ->options([
+                                    'upload' => 'Upload File Lokal',
+                                    'url' => 'URL Eksternal',
+                                ])
+                                ->default('upload')
+                                ->reactive()
+                                ->helperText('Pilih cara input file PDF. Akan diisi otomatis jika memilih template produk.')
+                                ->disabled(fn($get) => !empty($get('product_template_id'))),
+                            FileUpload::make('pdf_file')
+                                ->label('File PDF')
+                                ->acceptedFileTypes(['application/pdf'])
+                                ->maxSize(1000)
+                                ->required(fn($get) => $get('pdf_input_mode') === 'upload')
+                                ->visible(fn($get) => $get('pdf_input_mode') === 'upload')
+                                ->disabled(fn($get) => !empty($get('product_template_id'))),
+                            Forms\Components\TextInput::make('pdf_url')
+                                ->label('PDF URL')
+                                ->url()
+                                ->placeholder('https://example.com/document.pdf')
+                                ->required(fn($get) => $get('pdf_input_mode') === 'url')
+                                ->visible(fn($get) => $get('pdf_input_mode') === 'url')
+                                ->readonly(fn($get) => !empty($get('product_template_id')))
+                                ->extraAttributes(fn($get) => !empty($get('product_template_id')) ? [
+                                    'style' => 'background-color:#f3f4f6;pointer-events:none;color:#6b7280;',
+                                    'tabindex' => '-1',
+                                ] : [])
+                                ->reactive()
+                                ->debounce(750)
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    $url = trim($state ?? '');
+                                    if (preg_match('/(\\.pdf|\/pdf)$/i', $url)) {
+                                        try {
+                                            $response = Http::timeout(5)->head($url);
+                                            if ($response->failed() || $response->status() !== 200) {
+                                                $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ File PDF tidak ditemukan atau tidak dapat diakses.<br><small>Pastikan link benar dan file dapat diakses publik (status 200).</small></span>');
+                                                return;
+                                            }
+                                            $contentType = strtolower($response->header('Content-Type', ''));
+                                            $contentLength = (int) $response->header('Content-Length', 0);
+                                            if (!str_contains($contentType, 'application/pdf')) {
+                                                $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ Link tidak mengarah ke file PDF asli.<br><small>Content-Type: ' . e($contentType) . '</small></span>');
+                                                return;
+                                            }
+                                            if ($contentLength <= 0) {
+                                                $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ File PDF kosong atau tidak ditemukan.<br><small>Ukuran file 0 byte.</small></span>');
+                                                return;
+                                            }
+                                            $set('pdf_status_feedback', '<span style="color:#16a34a;font-weight:bold;">✔️ Link PDF valid</span> — <a href="' . e($url) . '" target="_blank" style="color: #2563eb; text-decoration:underline;">Klik untuk buka PDF</a>');
+                                        } catch (\Throwable $e) {
+                                            $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ Terjadi kesalahan saat memeriksa link PDF.<br><small>Periksa kembali URL atau koneksi internet Anda.</small></span>');
+                                        }
+                                    } else if (!empty($url)) {
+                                        $set('pdf_status_feedback', '<span style="color:#dc2626;font-weight:bold;">❌ URL harus diakhiri .pdf</span>');
+                                    } else {
+                                        $set('pdf_status_feedback', 'Belum ada file PDF.');
+                                    }
+                                })
+                                ->rule(function ($get) {
+                                    if ($get('pdf_input_mode') !== 'url') return null;
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        if (empty($value)) return;
+                                        $url = trim($value);
+                                        if (!preg_match('/(\\.pdf|\/pdf)$/i', $url)) {
+                                            $fail('URL harus mengarah ke file PDF (.pdf atau /pdf).');
+                                            return;
+                                        }
+                                        try {
+                                            $response = Http::timeout(5)->head($url);
+                                            if ($response->failed() || $response->status() !== 200) {
+                                                $fail('URL PDF tidak ditemukan atau tidak dapat diakses (status code bukan 200).');
+                                                return;
+                                            }
+                                            $contentType = strtolower($response->header('Content-Type', ''));
+                                            $contentLength = (int) $response->header('Content-Length', 0);
+                                            if (!str_contains($contentType, 'application/pdf')) {
+                                                $fail('URL tidak mengarah ke file PDF asli (Content-Type salah: ' . $contentType . ').');
+                                                return;
+                                            }
+                                            if ($contentLength <= 0) {
+                                                $fail('File PDF tidak ditemukan atau kosong (Content-Length 0).');
+                                                return;
+                                            }
+                                        } catch (\Throwable $e) {
+                                            $fail('URL PDF tidak valid atau tidak dapat diakses.');
+                                        }
+                                    };
+                                }),
+                            Forms\Components\Placeholder::make('pdf_status_feedback')
+                                ->label('Status PDF')
+                                ->content(fn($get) => new HtmlString($get('pdf_status_feedback') ?? 'Belum ada file PDF.'))
+                                ->visible(fn($get) => $get('pdf_input_mode') === 'url' && !empty($get('pdf_url')))
+                                ->columnSpanFull()
+                                ->helperText('Status validasi PDF akan muncul di sini.'),
+                        ]),
                         Forms\Components\Select::make('truck_load_vehicle_type_id')
                             ->label('Jenis Kendaraan Truck Load')
                             ->options([
