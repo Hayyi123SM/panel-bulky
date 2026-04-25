@@ -16,9 +16,9 @@ class CartResource extends JsonResource
         $tax = app(PpnSettings::class);
         $shipping_cost = $this->shipping_method == ShippingMethodEnum::COURIER_PICKUP ? $this->shipping_cost : 0;
 
-        // if ($this->shipping_provider === "Forwarder") {
-        //     $insurance_amount =  $this->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? (0.125 / 100) * $this->total_price : (0.2 / 100) * $this->total_price;
-        // }
+        if ($this->shipping_provider === "Forwarder") {
+             $insurance_amount =  $this->requirement_provider['transport_name'] === 'LAND TRANSPORT' ? (0.125 / 100) * $this->total_price : (0.2 / 100) * $this->total_price;
+        }
 
         $total = $this->total_price + $shipping_cost - ($this->discount_amount ?? 0);
 
