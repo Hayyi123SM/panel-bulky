@@ -18,7 +18,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-
+.DS_Store
 /nextjs/node_modules
 /nextjs/.pnp
 /nextjs/.pnp.js
@@ -38,3 +38,5 @@ yarn-error.log
 **/caddy
 frankenphp
 frankenphp-worker.php
+.DS_Store
+.github
