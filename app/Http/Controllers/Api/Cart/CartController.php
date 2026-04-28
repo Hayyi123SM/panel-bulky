@@ -543,6 +543,8 @@ class CartController extends Controller
                 $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
                     'city_name' => $city
                 ]);
+                Log::info('City List Response: ' . json_encode($destination));
+
                 if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
                     return response()->json([
                         'status' => 'unavailable_address',
@@ -559,6 +561,7 @@ class CartController extends Controller
                     "service_type" => 1,
                     "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
+                Log::info('Cost CBM Response: ' . json_encode($costCBM));
 
                 $cargoDetails = [
                     "cargo_details" => $selectedItems->map(function ($item) {
@@ -587,23 +590,7 @@ class CartController extends Controller
                     "lcl_basis" => 1,
                     "cargo_details" => $cargoDetails['cargo_details']
                 ]);
-
-                // return response()->json([
-                //     'cargorDetails' => $cargoDetails,
-                //     'costs' => $costs,
-                //     'response' => [
-                //         "origin_city" => 13,
-                //         "destination_city" => $destination['data'][0]['item_id'],
-                //         "destination_subdistrict" => 0,
-                //         "transport_type" => $transportType,
-                //         "load_type" => $loadType,
-                //         "service_type" => 1,
-                //         "vehicle_type" => 0, // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
-                //         "move_type" => 1,
-                //         "lcl_basis" => 1,
-                //         "cargo_details" => $cargoDetails['cargo_details']
-                //     ]
-                // ]);
+                Log::info('Calculate Pricing Response: ' . json_encode($costs));
 
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'];
@@ -811,6 +798,8 @@ class CartController extends Controller
                 $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
                     'city_name' => $city
                 ]);
+                Log::info('City List Response: ' . json_encode($destination));
+
                 if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
                     return response()->json([
                         'status' => 'unavailable_address',
@@ -827,6 +816,8 @@ class CartController extends Controller
                     "service_type" => 1,
                     "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
+                Log::info('Cost CBM Response: ' . json_encode($costs));
+
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
                     $cost = $costs['data'][0];
                     if (isset($cost['tariff_idr']) && !is_numeric($cost['tariff_idr'])) {
