@@ -638,18 +638,22 @@ class CartController extends Controller
                     ], 422);
                 }
             }
-            // ...existing code Deliveree
-            // selected vehicle for production
-            // $selectedVehicle = match (true) {
-            //     $selectedCount >= 5 && $selectedCount <= 8 => 2703, // CDE Box Liquid8
-            //     $selectedCount >= 9 => 2723, // CDD Box Liquid8
-            //     default => 2701, // van liquid8
-            // };
-            $selectedVehicle = match (true) {
-                $selectedCount >= 5 && $selectedCount <= 8 => 36,
-                $selectedCount >= 9 => 77,
-                default => 14,
-            };
+
+            if (config('deliveree.base_url') === 'https://api.sandbox.deliveree.com') {
+                $selectedVehicle = match (true) {
+                    $selectedCount >= 5 && $selectedCount <= 8 => 36,
+                    $selectedCount >= 9 => 77,
+                    default => 14,
+                };
+            } else {
+                // selected vehicle for production
+                $selectedVehicle = match (true) {
+                    $selectedCount >= 5 && $selectedCount <= 8 => 2703, // CDE Box Liquid8
+                    $selectedCount >= 9 => 2723, // CDD Box Liquid8
+                    default => 2701, // van liquid8
+                };
+            }
+
             $data = [
                 'time_type' => 'now',
                 'vehicle_type_id' => $selectedVehicle,
