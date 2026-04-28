@@ -133,11 +133,11 @@ class InvoiceController extends Controller
 
         $apiInstance = new InvoiceApi();
 
-        $redirectUrl = 'https://debug-front.bulky.id/redirect/?type=order&order_id=' . $invoice->order_id . '&payment_success=true';
+        $redirectUrl = config('app.frontend_url') . '/redirect/?type=order&order_id=' . $invoice->order_id . '&payment_success=true';
         $orderId = $invoice->order_id;
         if ($invoice->order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
             $orderId = $invoice->id;
-            $redirectUrl = 'https://debug-front.bulky.id/redirect/?type=order-split&order_id=' . $invoice->order_id . '&payment_success=true';
+            $redirectUrl = config('app.frontend_url') . '/redirect/?type=order-split&order_id=' . $invoice->order_id . '&payment_success=true';
         }
 
         $name = $invoice->order->items()->first()->product->name;
