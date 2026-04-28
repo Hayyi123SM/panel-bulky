@@ -561,6 +561,15 @@ class CartController extends Controller
                     "service_type" => 1,
                     "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
+                Log::info('Cost CBM Request: ' . json_encode([
+                    "origin_city" => 208,
+                    "destination_city" => $destination['data'][0]['item_id'],
+                    "destination_subdistrict" => 0,
+                    "transport_type" => $transportType,
+                    "load_type" => $loadType,
+                    "service_type" => 1,
+                    "vehicle_type" => $packagingType === "container" ? 12 : 7
+                ]));
                 Log::info('Cost CBM Response: ' . json_encode($costCBM));
 
                 $cargoDetails = [
@@ -590,6 +599,18 @@ class CartController extends Controller
                     "lcl_basis" => 1,
                     "cargo_details" => $cargoDetails['cargo_details']
                 ]);
+                Log::info('Calculate Pricing Request: ' . json_encode([
+                    "origin_city" => 13,
+                    "destination_city" => $destination['data'][0]['item_id'],
+                    "destination_subdistrict" => 0,
+                    "transport_type" => $transportType,
+                    "load_type" => $loadType,
+                    "service_type" => 1,
+                    "vehicle_type" => 0,
+                    "move_type" => 1,
+                    "lcl_basis" => 1,
+                    "cargo_details" => $cargoDetails['cargo_details']
+                ]));
                 Log::info('Calculate Pricing Response: ' . json_encode($costs));
 
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
@@ -816,6 +837,15 @@ class CartController extends Controller
                     "service_type" => 1,
                     "vehicle_type" => $packagingType === "container" ? 12 : 7 // Mandatory [7 = CDD Long; 12 = Wing Box; 0 = Selain Land Transport]
                 ]);
+                Log::info('Cost CBM Request: ' . json_encode([
+                    "origin_city" => 208,
+                    "destination_city" => $destination['data'][0]['item_id'],
+                    "destination_subdistrict" => 0,
+                    "transport_type" => $transportType,
+                    "load_type" => $loadType,
+                    "service_type" => 1,
+                    "vehicle_type" => $packagingType === "container" ? 12 : 7
+                ]));
                 Log::info('Cost CBM Response: ' . json_encode($costs));
 
                 if (isset($costs['data']) && collect($costs['data'])->count() > 0) {
