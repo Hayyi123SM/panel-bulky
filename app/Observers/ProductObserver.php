@@ -25,6 +25,11 @@ class ProductObserver
 
     public function forceDeleted(Product $product): void
     {
+        // Hapus semua gambar
         Storage::disk('public')->delete($product->images);
+        // Hapus file PDF jika ada
+        if (!empty($product->pdf_file)) {
+            Storage::disk('public')->delete($product->pdf_file);
+        }
     }
 }

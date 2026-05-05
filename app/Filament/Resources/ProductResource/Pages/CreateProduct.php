@@ -23,16 +23,16 @@ class CreateProduct extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // If autofill used and pdf_url is external, download and store locally
-        if (!empty($data['product_template_id']) && !empty($data['pdf_url']) && str_starts_with($data['pdf_url'], 'http')) {
+        if (!empty($data['pdf_url']) && str_starts_with($data['pdf_url'], 'http')) {
             try {
                 $pdfUrl = $data['pdf_url'];
                 $pdfName = 'product-' . uniqid() . '.pdf';
+                $relativePath = 'products/pdf/' . $pdfName;
                 $pdfContents = Http::timeout(10)->get($pdfUrl)->body();
                 // Validate PDF header
                 if (substr($pdfContents, 0, 4) !== '%PDF') {
                     throw new \Exception('File bukan PDF valid');
                 }
-                $relativePath = 'products/pdfs/' . $pdfName;
                 Storage::disk('public')->put($relativePath, $pdfContents);
                 $data['pdf_file'] = $relativePath;
                 $data['pdf_url'] = null;
@@ -46,6 +46,18 @@ class CreateProduct extends CreateRecord
                 $data['pdf_file'] = null;
                 $data['pdf_url'] = null;
             }
+        } else if (!empty($data['pdf_file'])) {
+            // Rename/move upload agar nama file diawali product-
+            $file = $data['pdf_file'];
+            $ext = pathinfo($file, PATHINFO_EXTENSION) ?: 'pdf';
+            $newName = 'product-' . uniqid() . '.' . $ext;
+            $newPath = 'products/pdf/' . $newName;
+            Storage::disk('public')->move($file, $newPath);
+            $data['pdf_file'] = $newPath;
+        }
+        // Pastikan images tetap array
+        if (isset($data['images']) && !is_array($data['images'])) {
+            $data['images'] = (array) $data['images'];
         }
         return $data;
     }

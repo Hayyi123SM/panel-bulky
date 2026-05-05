@@ -112,6 +112,7 @@ class ProductResource extends Resource
                                         }
                                     } else {
                                         $set('name_trans', '');
+                                        $set('id_pallet', '');
                                         $set('price_before_discount', '');
                                         $set('price', '');
                                         $set('total_quantity', '');
