@@ -544,7 +544,7 @@ class CartController extends Controller
                     '/\s+(City|Regency)$/i'
                 ], '', $location['city']);
                 $subdistrict = preg_replace([
-                    '/^(Kecamatan|Subdistrict)\s+/i',
+                    '/^(Kecamatan|Subdistrict|Distrik)\s+/i',
                 ], '', $location['sub_district']);
 
                 $apiForwarder = app(ApiRequest::class);
