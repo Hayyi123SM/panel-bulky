@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Socialite;
 
 /**
@@ -39,11 +40,22 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $request->authenticate();
+        $user = User::where('email', $request->input('email'))->first();
 
-        $request->session()->regenerate();
+        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
 
-        return new UserResource($request->user());
+        $token = $user->createToken('debug')->plainTextToken;
+        return (new UserResource($user))->additional(['token' => $token]);
+
+        // $request->authenticate();
+
+        // $request->session()->regenerate();
+
+        // return new UserResource($request->user());
     }
 
     /**
