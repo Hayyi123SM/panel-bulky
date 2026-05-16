@@ -136,7 +136,7 @@ class InvoiceController extends Controller
         $redirectUrl = config('app.frontend_url') . '/redirect/?type=order&order_id=' . $invoice->order_id . '&payment_success=true';
         $orderId = $invoice->order_id;
         if ($invoice->order->payment_method == OrderPaymentTypeEnum::SplitPayment) {
-            $orderId = $invoice->id;
+            // $orderId = $invoice->id;
             $redirectUrl = config('app.frontend_url') . '/redirect/?type=order-split&order_id=' . $invoice->order_id . '&payment_success=true';
         }
 

@@ -84,12 +84,14 @@ class GeoRegionService
             'locality' => 'city',
             'administrative_area_level_2' => 'city',
             'administrative_area_level_1' => 'province',
+            'administrative_area_level_3' => 'sub_district',
             'postal_code' => 'post_code',
         ];
 
         // Default if empty
         $result = [
             'city' => null,
+            'sub_district' => null,
             'province' => null,
             'post_code' => null,
             'full_address' => null,

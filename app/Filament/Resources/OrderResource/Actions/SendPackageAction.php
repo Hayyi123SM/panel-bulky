@@ -154,8 +154,8 @@ class SendPackageAction extends Action
                             "premiamount" => $record->total_price * (0.2 / 100), // 0.2% adalah insurance transport SEA
                             "bookingdetail" => $itemproducts->toArray()
                         ];
-                        $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', $payload);
                         Log::info('Forwarder Sea Freight Booking Payload', $payload);
+                        $booking = $apiForwarder->post('/createbooking', 'CREATEBOOKING', $payload);
                         Log::info('Forwarder Sea Freight Booking Response', $booking);
                     } else { // Land Transport
                         $itemproducts = $record->items->pluck('product')->map(function ($product) {

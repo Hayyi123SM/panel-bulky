@@ -535,27 +535,55 @@ class CartController extends Controller
                 $transportType = $location['transport_type'] ?? null;
                 $loadType = $location['load_type'] ?? null;
 
+                // return response()->json([
+                //     'detected_location' => $location
+                // ], 422);
+
                 $city = preg_replace([
                     '/^(Kota|Kabupaten)\s+/i',
                     '/\s+(City|Regency)$/i'
                 ], '', $location['city']);
+                $subdistrict = preg_replace([
+                    '/^(Kecamatan|Subdistrict|Distrik)\s+/i',
+                ], '', $location['sub_district']);
+
                 $apiForwarder = app(ApiRequest::class);
-                $destination = $apiForwarder->post('/citylist', 'CITYLIST', [
+                $destinationCity = $apiForwarder->post('/citylist', 'CITYLIST', [
                     'city_name' => $city
                 ]);
-                Log::info('City List Response: ' . json_encode($destination));
+                Log::info('City List Request: ' . json_encode([
+                    'city_name' => $city
+                ]));
+                Log::info('City List Response: ' . json_encode($destinationCity));
 
-                if (empty($destination['data']) || !isset($destination['data'][0]['item_id'])) {
+                if (empty($destinationCity['data']) || !isset($destinationCity['data'][0]['item_id'])) {
                     return response()->json([
                         'status' => 'unavailable_address',
                         'message' => 'Kota tujuan tidak tersedia untuk pengiriman ' . str_replace('_', ' ', $packagingType) . '. Silakan pilih kota lain.'
                     ], 422);
                 }
 
+                $destinationSubdistrict = $apiForwarder->post('/subdistrictlist', 'SUBDISTRICTLIST', [
+                    'subdistrict_name' => strtoupper($subdistrict),
+                    'city_id' => $destinationCity['data'][0]['item_id']
+                ]);
+                Log::info('Subdistrict List Request: ' . json_encode([
+                    'subdistrict_name' => strtoupper($subdistrict),
+                    'city_id' => $destinationCity['data'][0]['item_id']
+                ]));
+                Log::info('Subdistrict List Response: ' . json_encode($destinationSubdistrict));
+
+                if (empty($destinationSubdistrict['data']) || !isset($destinationSubdistrict['data'][0]['item_id'])) {
+                    return response()->json([
+                        'status' => 'unavailable_address',
+                        'message' => 'Kecamatan tujuan tidak tersedia untuk pengiriman ' . str_replace('_', ' ', $packagingType) . '. Silakan pilih kota lain.'
+                    ], 422);
+                }
+
                 $costCBM = $apiForwarder->post('/pricinglist_l8', 'PRICINGLIST_L8', [
                     "origin_city" => 208,
-                    "destination_city" => $destination['data'][0]['item_id'],
-                    "destination_subdistrict" => 0,
+                    "destination_city" => $destinationCity['data'][0]['item_id'],
+                    "destination_subdistrict" => $destinationSubdistrict['data'][0]['item_id'],
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,
@@ -563,8 +591,8 @@ class CartController extends Controller
                 ]);
                 Log::info('Cost CBM Request: ' . json_encode([
                     "origin_city" => 208,
-                    "destination_city" => $destination['data'][0]['item_id'],
-                    "destination_subdistrict" => 0,
+                    "destination_city" => $destinationCity['data'][0]['item_id'],
+                    "destination_subdistrict" => $destinationSubdistrict['data'][0]['item_id'],
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,
@@ -589,8 +617,8 @@ class CartController extends Controller
 
                 $costs = $apiForwarder->post('/calculatepricing', 'CALCULATEPRICING', [
                     "origin_city" => 13,
-                    "destination_city" => $destination['data'][0]['item_id'],
-                    "destination_subdistrict" => 0,
+                    "destination_city" => $destinationCity['data'][0]['item_id'],
+                    "destination_subdistrict" => $destinationSubdistrict['data'][0]['item_id'],
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,
@@ -601,8 +629,8 @@ class CartController extends Controller
                 ]);
                 Log::info('Calculate Pricing Request: ' . json_encode([
                     "origin_city" => 13,
-                    "destination_city" => $destination['data'][0]['item_id'],
-                    "destination_subdistrict" => 0,
+                    "destination_city" => $destinationCity['data'][0]['item_id'],
+                    "destination_subdistrict" => $destinationSubdistrict['data'][0]['item_id'],
                     "transport_type" => $transportType,
                     "load_type" => $loadType,
                     "service_type" => 1,

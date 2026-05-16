@@ -34,6 +34,24 @@ class OrderResource extends Resource
     protected static ?string $navigationGroup = 'Manajemen Pesanan';
     protected static ?int $navigationSort = 7;
 
+    /**
+     * Tampilkan badge jumlah pesanan yang sudah dibayar dan menunggu konfirmasi.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) Order::where('payment_status', 'PAID')
+            ->where('order_status', 'waiting_confirmation')
+            ->count();
+    }
+
+    /**
+     * Warna badge untuk menonjolkan status penting.
+     */
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'info'; // Bisa diganti sesuai preferensi: 'danger', 'success', dll.
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -87,7 +105,7 @@ class OrderResource extends Resource
             ->filtersFormColumns(4)
             ->actions([
                 ViewAction::make()
-                    ->url(fn (Order $record): string => OrderResource::getUrl('view', ['record' => $record])),
+                    ->url(fn(Order $record): string => OrderResource::getUrl('view', ['record' => $record])),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])

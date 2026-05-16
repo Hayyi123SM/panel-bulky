@@ -72,12 +72,12 @@ class ProductResource extends Resource
                                             $set('name_trans', $detail['name_document'] ?? '');
                                             $set('id_pallet', $detail['id'] ?? '');
                                             $set('price_before_discount', $detail['old_price'] ?? '');
-                                            $set('price', $detail['new_price'] ?? '');
+                                            // $set('price', $detail['new_price'] ?? '');
                                             $set('length_cm', $detail['dimension']['length'] ?? '');
                                             $set('width_cm', $detail['dimension']['width'] ?? '');
                                             $set('height_cm', $detail['dimension']['height'] ?? '');
                                             $set('weight_kg', $detail['dimension']['weight'] ?? '');
-                                            $set('total_quantity', $detail['total_quantity'] ?? '');
+                                            $set('total_quantity', $detail['qty'] ?? '');
                                             $set('packaging_type', $detail['packaging_type'] ?? 'palet');
                                             $set('pdf_input_mode', 'url');
                                             $pdfUrl = $detail['pdf_url'] ?? '';
@@ -112,6 +112,7 @@ class ProductResource extends Resource
                                         }
                                     } else {
                                         $set('name_trans', '');
+                                        $set('id_pallet', '');
                                         $set('price_before_discount', '');
                                         $set('price', '');
                                         $set('total_quantity', '');
