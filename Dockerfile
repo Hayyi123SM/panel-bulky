@@ -15,7 +15,7 @@ WORKDIR /app
 COPY . .
 
 # install backend deps
-RUN composer install --no-dev --no-interaction --prefer-dist
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 ##############################################
 # 2) NODE BUILD STAGE
@@ -37,6 +37,8 @@ FROM dunglas/frankenphp:1-php8.3 AS runtime
 
 WORKDIR /app
 
+ENV TZ=Asia/Jakarta
+
 # install php extensions untuk octane
 RUN install-php-extensions \
     pdo_mysql \
@@ -56,17 +58,10 @@ COPY . .
 COPY --from=composer_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
-COPY .env.example .env
-RUN php artisan key:generate
-
-RUN php artisan octane:install --server=frankenphp
-
-# laravel caches (opsional)
-RUN php artisan optimize --no-interaction || true
+RUN php artisan optimize:clear || true
 RUN php artisan storage:link || true
-RUN php artisan config:cache || true
-RUN php artisan route:cache || true
-RUN php artisan view:cache || true
+
+EXPOSE 8000
 
 # CMD ["frankenphp", "php-server"]
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2"]
