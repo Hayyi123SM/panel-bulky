@@ -58,7 +58,6 @@ COPY . .
 COPY --from=composer_build /app/vendor ./vendor
 COPY --from=node_build /app/public/build ./public/build
 
-RUN php artisan optimize:clear || true
 RUN php artisan storage:link || true
 
 EXPOSE 8000
