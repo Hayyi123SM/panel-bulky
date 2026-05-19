@@ -10,6 +10,7 @@ use App\Services\WMS\Contracts\ProductDropdownServiceInterface;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
+use FilamentTiptapEditor\TiptapEditor;
 use Filament\Notifications\Notification;
 use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
@@ -306,11 +307,15 @@ class ProductResource extends Resource
                             ->searchable()
                             ->visible(fn($get) => $get('packaging_type') === 'truck_load')
                             ->required(fn($get) => $get('packaging_type') === 'truck_load'),
-                        Forms\Components\RichEditor::make('description_trans')
+                        TiptapEditor::make('description_trans')
                             ->label('Deskripsi')
                             ->required()
                             ->columnSpanFull()
-                            ->placeholder('Enter Product Description'),
+                            ->profile('product')
+                            ->placeholder('Enter Product Description')
+                            ->disableBubbleMenus()
+                            ->disableFloatingMenus()
+                            ->extraInputAttributes(['style' => 'min-height: 300px;']),
                     ]),
 
                 Forms\Components\Section::make('Status dan Kategori')
