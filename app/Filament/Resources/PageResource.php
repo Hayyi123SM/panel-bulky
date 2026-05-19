@@ -7,6 +7,7 @@ use App\Filament\Resources\PageResource\RelationManagers;
 use App\Models\Page;
 use Filament\Forms;
 use Filament\Forms\Form;
+use FilamentTiptapEditor\TiptapEditor;
 use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -33,9 +34,13 @@ class PageResource extends Resource
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\RichEditor::make('content_trans')
+                TiptapEditor::make('content_trans')
                     ->label('Konten')
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->profile('default')
+                    ->disableBubbleMenus()
+                    ->disableFloatingMenus()
+                    ->extraInputAttributes(['style' => 'min-height: 400px;']),
             ]);
     }
 
