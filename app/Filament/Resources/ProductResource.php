@@ -360,7 +360,7 @@ class ProductResource extends Resource
                             ->preload()
                             ->searchable(),
                         Forms\Components\Select::make('status_package_id')
-                            ->label('Status Paket')
+                            ->label('Kondisi Packaging')
                             ->relationship('statusPackage', 'status')
                             ->required()
                             ->native(false)
