@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use FilamentTiptapEditor\Facades\TiptapConverter;
 use Filament\Actions;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
@@ -35,7 +36,12 @@ class ViewProduct extends ViewRecord
                     ]),
                 Section::make('Main Product Information')
                     ->schema([
-                        TextEntry::make('name_trans')->label('Name'),
+                        TextEntry::make('name_trans')
+                            ->label('Name')
+                            ->state(function ($record): string {
+                                $activeLocale = (property_exists($this, 'activeLocale') && $this->activeLocale) ? $this->activeLocale : app()->getLocale();
+                                return (string) $record->getTranslation('name_trans', $activeLocale, false);
+                            }),
                         TextEntry::make('id_pallet')->label('ID Pallet'),
                         TextEntry::make('price')
                             ->prefix('Rp ')
@@ -65,7 +71,15 @@ class ViewProduct extends ViewRecord
                 Section::make('Additional Product Details')
                     ->schema([
                         TextEntry::make('pdf_file')->label('PDF File'),
-                        TextEntry::make('description_trans')->label('Description')->html(),
+                        TextEntry::make('description_trans')
+                            ->label('Description')
+                            ->state(function ($record): string {
+                                $activeLocale = (property_exists($this, 'activeLocale') && $this->activeLocale) ? $this->activeLocale : app()->getLocale();
+                                $translation = $record->getTranslation('description_trans', $activeLocale, false);
+                                if (empty($translation)) return '';
+                                return TiptapConverter::asHTML($translation);
+                            })
+                            ->html(),
                     ]),
                 Section::make('Status and Categorization')
                     ->schema([
