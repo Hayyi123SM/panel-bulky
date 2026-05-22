@@ -25,6 +25,7 @@ class EditProduct extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $record = $this->getRecord();
+
         // Handle PDF lama: hapus jika diganti
         if (!empty($data['pdf_file']) && $data['pdf_file'] !== $record->pdf_file) {
             if ($record->pdf_file && \Illuminate\Support\Facades\Storage::disk('public')->exists($record->pdf_file)) {
