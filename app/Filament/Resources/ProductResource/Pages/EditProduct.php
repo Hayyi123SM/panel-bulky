@@ -39,17 +39,16 @@ class EditProduct extends EditRecord
             $data['pdf_file'] = $newPath;
         }
         // Handle gambar: hapus file lama yang tidak ada di array baru
-        $oldImages = $record->images ?? [];
-        $newImages = $data['images'] ?? [];
-        $deletedImages = array_diff((array) $oldImages, (array) $newImages);
-        foreach ($deletedImages as $img) {
-            if ($img && \Illuminate\Support\Facades\Storage::disk('public')->exists($img)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($img);
+        // Gunakan array_key_exists agar hanya proses jika 'images' benar-benar dikirim oleh form
+        if (array_key_exists('images', $data)) {
+            $oldImages = $record->fresh()->images ?? [];
+            $newImages = (array) ($data['images'] ?? []);
+            $deletedImages = array_diff($oldImages, $newImages);
+            foreach ($deletedImages as $img) {
+                if ($img && \Illuminate\Support\Facades\Storage::disk('public')->exists($img)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($img);
+                }
             }
-        }
-        // Pastikan images tetap array
-        if (isset($data['images']) && !is_array($data['images'])) {
-            $data['images'] = (array) $data['images'];
         }
         return $data;
     }

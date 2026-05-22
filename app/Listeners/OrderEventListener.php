@@ -212,6 +212,7 @@ class OrderEventListener
                 '62811833164', //admin 3
                 '62811858804', //admin 4
                 '62811908990', //admin 5
+                '081311667881', //admin 6
             ], $sellerMessage);
 
             WhatsApp::sendMessage('6287766906425', "*INFO FROM PRODUCTION*\n\n" . $sellerMessage);
@@ -223,7 +224,7 @@ class OrderEventListener
             });
         } else {
             WhatsApp::sendMessage('6287766906425', "*INFO FROM DEVELOPMENT*\n\n" . $sellerMessage);
-            WhatsApp::sendMessage('6281578223564', "*INFO FROM DEVELOPMENT*\n\n" . $sellerMessage);
+            // WhatsApp::sendMessage('6281578223564', "*INFO FROM DEVELOPMENT*\n\n" . $sellerMessage);
         }
     }
 
