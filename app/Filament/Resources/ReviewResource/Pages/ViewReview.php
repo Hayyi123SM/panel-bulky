@@ -2,14 +2,18 @@
 
 namespace App\Filament\Resources\ReviewResource\Pages;
 
+use App\Filament\Resources\ReviewResource\Actions\ApproveAction;
+use App\Filament\Resources\ReviewResource\Actions\CancelAction;
 use App\Filament\Resources\ReviewResource;
-use App\Filament\Resources\ReviewResource\Actions;
+use App\Models\Review;
+use Filament\Actions;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\Storage;
 use Mokhosh\FilamentRating\Entries\RatingEntry;
 
 class ViewReview extends ViewRecord
@@ -19,8 +23,9 @@ class ViewReview extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ApproveAction::make(),
-            Actions\CancelAction::make(),
+            ApproveAction::make(),
+            CancelAction::make(),
+            Actions\EditAction::make(),
         ];
     }
 
@@ -36,7 +41,14 @@ class ViewReview extends ViewRecord
                         IconEntry::make('approved')->label('Disetujui'),
                         RatingEntry::make('rating')->label('Rating'),
                         TextEntry::make('comment')->label('Komentar'),
-                        ImageEntry::make('images.path')->label('Gambar')->placeholder('-'),
+                        ImageEntry::make('images')
+                            ->label('Gambar')
+                            ->state(
+                                fn(Review $record) => $record->images
+                                    ->pluck('path')
+                                    ->map(fn(string $path) => asset('storage/' . $path))
+                                    ->toArray()
+                            ),
                     ])->inlineLabel()
             ]);
     }
