@@ -32,7 +32,50 @@ class ReviewResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Section::make('Informasi Ulasan')
+                    ->schema([
+                        Forms\Components\TextInput::make('user.name')
+                            ->label('Nama Pengguna')
+                            ->disabled()
+                            ->placeholder('-'),
+                        Forms\Components\TextInput::make('order.order_number')
+                            ->label('Nomor Pesanan')
+                            ->disabled()
+                            ->placeholder('-'),
+                        Forms\Components\TextInput::make('product.name')
+                            ->label('Nama Produk')
+                            ->disabled()
+                            ->placeholder('-'),
+                        Forms\Components\TextInput::make('rating')
+                            ->label('Rating')
+                            ->disabled()
+                            ->numeric(),
+                    ])->columns(2),
+                Forms\Components\Section::make('Edit Ulasan')
+                    ->schema([
+                        Forms\Components\Textarea::make('comment')
+                            ->label('Komentar')
+                            ->disabled()
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                        Forms\Components\Toggle::make('approved')
+                            ->label('Setujui Ulasan')
+                            ->default(false),
+                    ]),
+                Forms\Components\Section::make('Gambar Ulasan')
+                    ->schema([
+                        Forms\Components\FileUpload::make('review_images')
+                            ->label('Gambar')
+                            ->disk('public')
+                            ->visibility('public')
+                            ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->openable()
+                            ->directory('reviews')
+                            ->panelLayout('grid')
+                            ->fetchFileInformation(false),
+                    ]),
             ]);
     }
 
@@ -57,6 +100,7 @@ class ReviewResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -78,6 +122,7 @@ class ReviewResource extends Resource
             'index' => Pages\ListReviews::route('/'),
             'create' => Pages\CreateReview::route('/create'),
             'view' => Pages\ViewReview::route('/{record}'),
+            'edit' => Pages\EditReview::route('/{record}/edit'),
         ];
     }
 }
