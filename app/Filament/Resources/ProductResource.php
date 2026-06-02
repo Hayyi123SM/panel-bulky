@@ -196,22 +196,22 @@ class ProductResource extends Resource
                                 ])
                                 ->default('upload')
                                 ->reactive()
-                                ->helperText('Pilih cara input file PDF. Akan diisi otomatis jika memilih template produk.')
-                                ->disabled(fn($get) => !empty($get('product_template_id'))),
+                                ->helperText('Pilih cara input file PDF. Akan diisi otomatis jika memilih template produk.'),
+                            // ->disabled(fn($get) => !empty($get('product_template_id'))),
                             FileUpload::make('pdf_file')
                                 ->label('File PDF')
                                 ->acceptedFileTypes(['application/pdf'])
                                 ->maxSize(1000)
                                 ->required(fn($get) => $get('pdf_input_mode') === 'upload')
-                                ->visible(fn($get) => $get('pdf_input_mode') === 'upload')
-                                ->disabled(fn($get) => !empty($get('product_template_id'))),
+                                ->visible(fn($get) => $get('pdf_input_mode') === 'upload'),
+                            // ->disabled(fn($get) => !empty($get('product_template_id'))),
                             Forms\Components\TextInput::make('pdf_url')
                                 ->label('PDF URL')
                                 ->url()
                                 ->placeholder('https://example.com/document.pdf')
                                 ->required(fn($get) => $get('pdf_input_mode') === 'url')
                                 ->visible(fn($get) => $get('pdf_input_mode') === 'url')
-                                ->readonly(fn($get) => !empty($get('product_template_id')))
+                                // ->readonly(fn($get) => !empty($get('product_template_id')))
                                 ->extraAttributes(fn($get) => !empty($get('product_template_id')) ? [
                                     'style' => 'background-color:#f3f4f6;pointer-events:none;color:#6b7280;',
                                     'tabindex' => '-1',
