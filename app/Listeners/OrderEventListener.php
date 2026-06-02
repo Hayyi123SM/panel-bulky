@@ -206,7 +206,6 @@ class OrderEventListener
         if (app()->environment('production')) {
             SendWhatsappToSeller::dispatch([
                 '62811889588', //Pak Niko
-                '628119112722', //Pak Mike
                 '6285280106488', //Admin 1
                 '6289603097173', //Admin 2
                 '62811833164', //admin 3
