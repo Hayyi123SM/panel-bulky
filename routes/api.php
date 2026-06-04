@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Banner\BannerController;
 use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Coupon\CouponController;
 use App\Http\Controllers\Api\General\GeneralApiController;
+use App\Http\Controllers\Api\General\HomeHeroController;
 use App\Http\Controllers\Api\Order\InvoiceController;
 use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Page\PageController;
@@ -57,6 +58,7 @@ Route::prefix('auth')->group(function () {
 Route::prefix('general')->group(function () {
     Route::get('available-banks', [GeneralApiController::class, 'banks']);
     Route::get('floating-button', [GeneralApiController::class, 'floatingButton']);
+    Route::get('home-hero', [HomeHeroController::class, 'showActive'])->name('general.home-hero');
     Route::prefix('wholesale-form')->group(function () {
         Route::get('budget', [GeneralApiController::class, 'wholesaleFormBudget']);
         Route::post('send', [GeneralApiController::class, 'storeWholesaleForm'])->name('general.wholesale.send');
