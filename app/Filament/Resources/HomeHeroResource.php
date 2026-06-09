@@ -8,6 +8,7 @@ use App\Filament\Resources\HomeHeroResource\Pages\ListHomeHeroes;
 use App\Models\HomeHero;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,6 +18,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HomeHeroResource extends Resource
 {
+    use Translatable;
+
     protected static ?string $model = HomeHero::class;
 
     protected static ?string $navigationGroup = 'Pengaturan';
@@ -30,40 +33,47 @@ class HomeHeroResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->label('Title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('subtitle')
-                    ->label('Subtitle')
-                    ->required()
-                    ->rows(4)
-                    ->maxLength(2000)
-                    ->columnSpanFull(),
-                Forms\Components\FileUpload::make('image_path')
-                    ->label('Gambar')
-                    ->required()
-                    ->image()
-                    ->imageEditor()
-                    ->openable()
-                    ->downloadable()
-                    ->disk('public')
-                    ->directory('heroes/home')
-                    ->visibility('public')
-                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                        $hash = hash('sha1', $file->getClientOriginalName() . time());
-                        $extension = $file->getClientOriginalExtension();
+                Forms\Components\Section::make('Konten Hero Beranda')
+                    ->schema([
+                        Forms\Components\TextInput::make('title_trans')
+                            ->label('Judul')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('subtitle_trans')
+                            ->label('Subtitle')
+                            ->required()
+                            ->rows(4)
+                            ->maxLength(2000)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('Media & Pengaturan')
+                    ->schema([
+                        Forms\Components\FileUpload::make('image_path')
+                            ->label('Gambar')
+                            ->required()
+                            ->image()
+                            ->imageEditor()
+                            ->openable()
+                            ->downloadable()
+                            ->disk('public')
+                            ->directory('heroes/home')
+                            ->visibility('public')
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                $hash = hash('sha1', $file->getClientOriginalName() . time());
+                                $extension = $file->getClientOriginalExtension();
 
-                        return $hash . '.' . $extension;
-                    })
-                    ->helperText('Rekomendasi ukuran: 1200 x 700 px, maksimal 2MB.')
-                    ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_active')
-                    ->label('Aktifkan Hero Beranda')
-                    ->default(false)
-                    ->inline(false),
-            ])
-            ->columns(2);
+                                return $hash . '.' . $extension;
+                            })
+                            ->helperText('Rekomendasi ukuran: 1200 x 700 px, maksimal 2MB.')
+                            ->columnSpanFull(),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Aktifkan Hero Beranda')
+                            ->default(false)
+                            ->inline(false),
+                    ])
+                    ->columns(2),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -75,12 +85,26 @@ class HomeHeroResource extends Resource
                     ->disk('public')
                     ->height(48)
                     ->width(80),
-                Tables\Columns\TextColumn::make('title')
-                    ->label('Title')
+                Tables\Columns\TextColumn::make('title_trans')
+                    ->label('Judul')
+                    ->formatStateUsing(function ($state): string {
+                        if (! is_array($state)) {
+                            return (string) $state;
+                        }
+                        $locale = app()->getLocale();
+                        return (string) ($state[$locale] ?? $state['id'] ?? '');
+                    })
                     ->searchable()
                     ->limit(50),
-                Tables\Columns\TextColumn::make('subtitle')
+                Tables\Columns\TextColumn::make('subtitle_trans')
                     ->label('Subtitle')
+                    ->formatStateUsing(function ($state): string {
+                        if (! is_array($state)) {
+                            return (string) $state;
+                        }
+                        $locale = app()->getLocale();
+                        return (string) ($state[$locale] ?? $state['id'] ?? '');
+                    })
                     ->limit(70)
                     ->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')

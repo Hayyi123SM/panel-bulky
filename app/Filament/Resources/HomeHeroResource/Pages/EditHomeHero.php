@@ -8,6 +8,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditHomeHero extends EditRecord
 {
+    use EditRecord\Concerns\Translatable;
     protected static string $resource = HomeHeroResource::class;
 
     protected function getHeaderActions(): array
@@ -16,6 +17,7 @@ class EditHomeHero extends EditRecord
             Actions\DeleteAction::make(),
             Actions\RestoreAction::make(),
             Actions\ForceDeleteAction::make(),
+            Actions\LocaleSwitcher::make()
         ];
     }
 }

@@ -13,8 +13,8 @@ class HomeHeroResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'subtitle' => $this->subtitle,
+            'title_trans' => $this->getTranslations('title_trans'),
+            'subtitle_trans' => $this->getTranslations('subtitle_trans'),
             'image_path' => $this->image_path,
             'full_url' => asset('storage/' . $this->image_path),
             'is_active' => $this->is_active,
