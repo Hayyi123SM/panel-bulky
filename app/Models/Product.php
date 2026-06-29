@@ -103,6 +103,8 @@ class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_new' => 'boolean',
+            'tag_ribbon' => 'boolean',
             'images' => 'array',
             'sold_out' => 'boolean',
             'name_trans' => 'json',
@@ -158,6 +160,8 @@ class Product extends Model
                 'description',
                 'description_trans',
                 'is_active',
+                'is_new',
+                'tag_ribbon',
                 'sold_out',
                 'note_discrepancy',
             ])
