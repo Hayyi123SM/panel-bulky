@@ -114,6 +114,7 @@ Route::prefix('products')->group(function () {
         Route::get('brands', [FilterController::class, 'brands']);
         Route::get('conditions', [FilterController::class, 'conditions']);
         Route::get('statuses', [FilterController::class, 'statuses']);
+        Route::get('status-packages', [FilterController::class, 'statusPackages']);
     });
 });
 

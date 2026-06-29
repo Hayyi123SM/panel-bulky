@@ -47,6 +47,7 @@ class Product extends Model
         'note_discrepancy',
         'vehicle_type_id',
         'is_new',
+        'tag_ribbon',
         'length_cm',
         'width_cm',
         'height_cm',
