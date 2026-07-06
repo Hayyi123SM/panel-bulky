@@ -12,6 +12,7 @@ use App\Models\ProductBrand;
 use App\Models\ProductCategory;
 use App\Models\ProductCondition;
 use App\Models\ProductStatus;
+use App\Models\StatusPackage;
 use App\Models\Warehouse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -83,6 +84,18 @@ class FilterController extends Controller
     public function statuses()
     {
         return $this->getCollection(ProductStatus::class, 'status', ProductStatusResource::class);
+    }
+
+    /**
+     * Statuses
+     *
+     * Retrieves all the statuses from the database and returns them as a collection of ProductStatusResource objects.
+     *
+     * @return AnonymousResourceCollection The collection of ProductStatusResource objects.
+     */
+    public function statusPackages()
+    {
+        return $this->getCollection(StatusPackage::class, 'status', ProductStatusResource::class);
     }
 
     /**

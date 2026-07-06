@@ -320,9 +320,16 @@ class ProductResource extends Resource
 
                 Forms\Components\Section::make('Status dan Kategori')
                     ->schema([
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Diaktifkan')
-                            ->default(true),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Toggle::make('tag_ribbon')
+                                    ->label('Tag Ribbon')
+                                    ->default(false),
+                                Forms\Components\Toggle::make('is_active')
+                                    ->label('Diaktifkan')
+                                    ->default(true)
+                                // ->native(false),
+                            ]),
                         Forms\Components\Select::make('warehouse_id')
                             ->label('Gudang')
                             ->relationship('warehouse', 'name')
@@ -534,6 +541,13 @@ class ProductResource extends Resource
                     ->label('Terjual')
                     ->boolean()
                     ->alignCenter(),
+
+                Tables\Columns\ToggleColumn::make('tag_ribbon')
+                    ->label('Tag Ribbon')
+                    ->onIcon('heroicon-o-check')
+                    ->onColor('success')
+                    ->alignCenter()
+                    ->sortable(),
 
                 Tables\Columns\ToggleColumn::make('is_new')
                     ->label('Produk Baru')

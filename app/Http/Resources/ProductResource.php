@@ -39,6 +39,8 @@ class ProductResource extends JsonResource
             'brands' => ProductBrandResource::collection($this->whenLoaded('brands')),
             'sold_out' => $this->sold_out,
             'is_active' => $this->is_active,
+            'is_new' => $this->is_new,
+            'tag_ribbon' => $this->tag_ribbon,
 
             // Product availability for FE (consistency with CartItemResource)
             'is_available' => $this->is_active && !$this->sold_out,
