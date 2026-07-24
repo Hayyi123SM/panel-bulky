@@ -16,7 +16,7 @@ class ApiRequest
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'Authorization' => config('wms.api_token'),
-            ]
+            ],
         ]);
     }
 
@@ -25,7 +25,7 @@ class ApiRequest
         $client = self::initClient();
         try {
             $response = $client->request('GET', $url, [
-                'query' => $queryParams
+                'query' => $queryParams,
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
@@ -34,20 +34,19 @@ class ApiRequest
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException | \Exception $e) {
+        } catch (RequestException|\Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
         }
     }
 
-    public static function sendPostRequest(string $url, array $formParams = [], array $headers = [])
+    public static function sendPostRequest(string $url, array $payload = [])
     {
         $client = self::initClient();
         try {
             $response = $client->request('POST', $url, [
-                'form_params' => $formParams,
-                'headers' => $headers
+                'json' => $payload,
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
@@ -56,7 +55,7 @@ class ApiRequest
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException | \Exception $e) {
+        } catch (RequestException|\Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
@@ -69,7 +68,7 @@ class ApiRequest
         try {
             $response = $client->request('PUT', $url, [
                 'form_params' => $formParams,
-                'headers' => $headers
+                'headers' => $headers,
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
@@ -78,7 +77,7 @@ class ApiRequest
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException | \Exception $e) {
+        } catch (RequestException|\Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
@@ -90,7 +89,7 @@ class ApiRequest
         $client = self::initClient();
         try {
             $response = $client->request('DELETE', $url, [
-                'headers' => $headers
+                'headers' => $headers,
             ]);
             $response = json_decode($response->getBody()->getContents(), true);
 
@@ -99,7 +98,7 @@ class ApiRequest
             } else {
                 throw new \Exception($response['data']['message']);
             }
-        } catch (RequestException | \Exception $e) {
+        } catch (RequestException|\Exception $e) {
             return ['error' => $e->getMessage()];
         } catch (GuzzleException $e) {
             return ['error' => $e->getMessage()];
